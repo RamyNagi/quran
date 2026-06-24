@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Spiritual Sanctuary - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "inverse-primary": "#95d3ba",
+                    "primary-container": "#003527",
+                    "secondary": "#735c00",
+                    "primary-fixed-dim": "#95d3ba",
+                    "on-secondary-container": "#745c00",
+                    "primary": "#003527",
+                    "secondary-fixed": "#ffe088",
+                    "secondary-container": "#fed65b",
+                    "surface-bright": "#f8f9ff",
+                    "surface-container-high": "#dee9fc",
+                    "on-tertiary-fixed": "#002114",
+                    "error-container": "#ffdad6",
+                    "tertiary-container": "#004f35",
+                    "surface-container": "#e6eeff",
+                    "on-primary": "#ffffff",
+                    "on-background": "#121c2a",
+                    "tertiary-fixed-dim": "#45dfa4",
+                    "on-surface": "#121c2a",
+                    "surface-container-highest": "#d9e3f6",
+                    "surface-container-low": "#eff4ff",
+                    "outline-variant": "#bfc9c3",
+                    "on-secondary-fixed": "#241a00",
+                    "on-tertiary-container": "#23ca90",
+                    "surface-variant": "#d9e3f6",
+                    "on-primary-fixed": "#002117",
+                    "on-surface-variant": "#404944",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "on-error": "#ffffff",
+                    "tertiary-fixed": "#68fcbf",
+                    "on-secondary": "#ffffff",
+                    "inverse-surface": "#27313f",
+                    "on-error-container": "#93000a",
+                    "on-primary-container": "#80bea6",
+                    "secondary-fixed-dim": "#e9c349",
+                    "on-tertiary-fixed-variant": "#005137",
+                    "background": "#f8f9ff",
+                    "error": "#ba1a1a",
+                    "outline": "#707974",
+                    "surface-dim": "#d0dbed",
+                    "surface": "#f8f9ff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "tertiary": "#003623",
+                    "surface-tint": "#2b6954",
+                    "primary-fixed": "#b0f0d6",
+                    "on-primary-fixed-variant": "#0b513d",
+                    "on-secondary-fixed-variant": "#574500",
+                    "gold-accent": "#D4AF37",
+                    "deep-charcoal-green": "#060d0a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "2xl": "1.25rem",
+                    "3xl": "2rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xs": "4px",
+                    "sm": "8px",
+                    "md": "16px",
+                    "lg": "24px",
+                    "xl": "32px",
+                    "2xl": "48px",
+                    "3xl": "64px",
+                    "gutter-mobile": "12px",
+                    "margin-mobile": "20px",
+                    "unit": "4px"
+            },
+            "fontFamily": {
+                    "label-md": ["Plus Jakarta Sans", "sans-serif"],
+                    "caption": ["Plus Jakarta Sans", "sans-serif"],
+                    "headline-lg": ["EB Garamond", "serif"],
+                    "display-lg": ["EB Garamond", "serif"],
+                    "headline-lg-mobile": ["EB Garamond", "serif"],
+                    "body-lg": ["Plus Jakarta Sans", "sans-serif"],
+                    "headline-md": ["EB Garamond", "serif"],
+                    "body-md": ["Plus Jakarta Sans", "sans-serif"]
+            },
+            "fontSize": {
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.08em", "fontWeight": "600"}],
+                    "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                    "display-lg": ["52px", {"lineHeight": "60px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "500"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #060d0a; /* Deep charcoal-green */
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .arabesque-pattern {
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 0 L55 35 L90 40 L55 45 L50 80 L45 45 L10 40 L45 35 Z M0 50 L35 55 L40 90 L45 55 L80 50 L45 45 L40 10 L35 45 Z' fill='%23D4AF37' fill-opacity='0.04'/%3E%3C/svg%3E");
+        }
+        .glow-gold {
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.08);
+        }
+        .decorative-border {
+            position: relative;
+        }
+        .decorative-border::before, .decorative-border::after {
+            content: '✧';
+            position: absolute;
+            color: #D4AF37;
+            font-size: 10px;
+            opacity: 0.6;
+        }
+        .gold-line-h {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #D4AF37, transparent);
+            width: 100%;
+            margin: 1.5rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .gold-line-h::after {
+            content: '❧';
+            color: #D4AF37;
+            background: #060d0a;
+            padding: 0 1rem;
+            font-size: 14px;
+        }
+        .bento-card-frame {
+            border: 1px solid rgba(212, 175, 55, 0.15);
+            background: linear-gradient(145deg, rgba(0, 53, 39, 0.4), rgba(6, 13, 10, 0.4));
+        }
+        .premium-text-shadow {
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="text-on-background antialiased selection:bg-gold-accent/30 selection:text-white arabesque-pattern">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-deep-charcoal-green/80 backdrop-blur-2xl flex justify-between items-center px-margin-mobile py-lg border-b border-gold-accent/10">
+<div class="flex items-center gap-md"><div class="h-12 w-12 flex items-center justify-center overflow-hidden">https://lh3.googleusercontent.com/aida-public/AB6AXuBwyvxxbiAkWKq6vTNXSfdYjYKJyNes6bOsE6-azelYq7OHtJ8q9y2EHbHPWTn255jqvZSNA3_-qOL5NJDEUtWzTpVwsajk2TCuMHvc8QlTPL3zOoCaUWMb2sXTsNAm6Olon6Q_4MYQ1HjNGNKixnr-2MMUm41m54jyO5c5VKivO_j27BPSU1wInACjjj79mdFo9QNZhpICq2KVb464PtJoEcQgIajiLRog88WB43gg02tz6uRqZdOD0BVTcq9SUJ03ewp6n0eOYj0</div><h1 class="font-headline-md text-[18px] tracking-wide text-primary-fixed-dim/90">12 Ramadan 1445 • London, UK</h1></div>
+<button class="hover:bg-gold-accent/10 transition-colors p-sm rounded-full active:scale-95 duration-150">
+<span class="material-symbols-outlined text-gold-accent" data-icon="calendar_today">calendar_today</span>
+</button>
+</header>
+<main class="pt-32 pb-32 px-margin-mobile max-w-xl mx-auto space-y-3xl">
+<!-- Welcome Section -->
+<section class="space-y-xs text-center">
+<p class="font-label-md text-gold-accent tracking-[0.2em] uppercase opacity-70">As-salamu Alaykum</p>
+<h2 class="font-display-lg text-white premium-text-shadow">Omar</h2>
+</section>
+<!-- Next Prayer Decorative Frame Card -->
+<div class="p-0.5 rounded-[2.2rem] bg-gradient-to-br from-gold-accent/30 via-gold-accent/5 to-gold-accent/20">
+<section class="relative overflow-hidden rounded-3xl bg-primary-container p-xl glow-gold group">
+<div class="absolute inset-0 arabesque-pattern opacity-10"></div>
+<div class="relative z-10 flex justify-between items-start">
+<div class="space-y-sm">
+<span class="font-label-md text-gold-accent flex items-center gap-xs uppercase text-[11px] tracking-widest">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">notifications_active</span>
+                        Upcoming Prayer
+                    </span>
+<h3 class="font-display-lg text-white text-[42px]">Maghrib</h3>
+<p class="font-body-md text-primary-fixed-dim italic">In 42 minutes</p>
+</div>
+<div class="text-right">
+<p class="font-headline-lg text-white text-[38px] leading-none mb-1">18:14</p>
+<p class="font-caption text-gold-accent/60 tracking-wider">Sunset 18:12</p>
+</div>
+</div>
+<div class="relative z-10 mt-xl">
+<div class="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+<div class="h-full bg-gold-accent w-[75%] transition-all duration-1000 ease-out shadow-[0_0_12px_#D4AF37]"></div>
+</div>
+</div>
+</section>
+</div>
+<!-- Decorative Divider -->
+<div class="gold-line-h opacity-40"></div>
+<!-- Prayer Times List -->
+<section class="space-y-xl">
+<div class="flex justify-between items-end border-b border-gold-accent/10 pb-sm mx-xs">
+<h4 class="font-headline-md text-gold-accent/90 uppercase tracking-widest text-[16px]">Prayer Times</h4>
+<button class="text-gold-accent/60 font-label-md text-xs hover:text-gold-accent transition-colors">Adjust Settings</button>
+</div>
+<div class="grid grid-cols-1 gap-md">
+<!-- Fajr -->
+<div class="flex items-center justify-between p-lg bento-card-frame rounded-2xl transition-all hover:border-gold-accent/30">
+<div class="flex items-center gap-lg">
+<span class="material-symbols-outlined text-gold-accent opacity-60" data-icon="wb_twilight">wb_twilight</span>
+<span class="font-body-lg text-white/90">Fajr</span>
+</div>
+<span class="font-headline-md text-gold-accent/80 text-[18px]">04:32</span>
+</div>
+<!-- Dhuhr -->
+<div class="flex items-center justify-between p-lg bento-card-frame rounded-2xl transition-all hover:border-gold-accent/30">
+<div class="flex items-center gap-lg">
+<span class="material-symbols-outlined text-gold-accent opacity-60" data-icon="wb_sunny">wb_sunny</span>
+<span class="font-body-lg text-white/90">Dhuhr</span>
+</div>
+<span class="font-headline-md text-gold-accent/80 text-[18px]">12:58</span>
+</div>
+<!-- Asr -->
+<div class="flex items-center justify-between p-lg bento-card-frame rounded-2xl transition-all hover:border-gold-accent/30">
+<div class="flex items-center gap-lg">
+<span class="material-symbols-outlined text-gold-accent opacity-60" data-icon="light_mode">light_mode</span>
+<span class="font-body-lg text-white/90">Asr</span>
+</div>
+<span class="font-headline-md text-gold-accent/80 text-[18px]">16:24</span>
+</div>
+</div>
+</section>
+<!-- Daily Inspiration -->
+<section class="space-y-lg">
+<div class="relative p-0.5 rounded-[2rem] bg-gradient-to-tr from-gold-accent/20 via-transparent to-gold-accent/10">
+<div class="bg-primary-container/40 p-xl rounded-3xl border border-white/5 relative overflow-hidden">
+<div class="absolute top-4 right-4 text-gold-accent/20 text-4xl font-serif select-none italic">"</div>
+<span class="font-label-md text-gold-accent/70 mb-lg block tracking-widest text-[12px]">AYAH OF THE DAY</span>
+<p class="font-headline-md text-white/95 italic leading-[1.6] text-[22px] premium-text-shadow">
+                    "So verily, with every difficulty, there is relief."
+                </p>
+<p class="font-label-md text-gold-accent/50 mt-lg text-[13px] tracking-wide">— Surah Ash-Sharh 94:5</p>
+</div>
+</div>
+<!-- Secondary Content -->
+<div class="relative group cursor-pointer overflow-hidden rounded-3xl aspect-[16/10] border border-white/5 shadow-2xl">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-[2s] group-hover:scale-105" data-alt="A tranquil, high-contrast dark-mode photograph of a modern minimalist mosque interior with soft glowing architectural lights. The atmosphere is serene and spiritual, featuring deep charcoal tones and subtle emerald green highlights reflecting off polished surfaces. The composition is clean and artistic, emphasizing peace and solitude in a sacred space." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBo47l25-op9PDy7zENeuNG5ya3LRpq5OdCyuNNK3ThSebBTpO-BZUI5pPWlLpwadIMfPdj3yPSrbsg8keKFWJbxXRrNHXKOWDWBoQB_C-cxfAC_H11VAFcdijb7MQJjJLl-xZzhAdS4FG5P-jhALYIrUgV0QPimZLkiswGGRLFc7NaDYRuT1F5bo_adWZk7GArGfMFGzFeD1UJxw7__LssCOxED1y_kOYdXWdBIbnFbtGXKkOlVC30CTDEjkgUad8it4VtevNb8Vk')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-deep-charcoal-green via-deep-charcoal-green/40 to-transparent"></div>
+<div class="absolute bottom-lg left-lg">
+<span class="font-label-md text-gold-accent uppercase text-[12px]">Daily Dhikr</span>
+<p class="font-body-md text-white/70 italic">Stay connected, 10 mins goal</p>
+</div>
+</div>
+</section>
+<!-- Bento Actions -->
+<section class="grid grid-cols-2 gap-md pb-12">
+<div class="bento-card-frame p-lg rounded-3xl flex flex-col gap-lg hover:bg-gold-accent/5 transition-all cursor-pointer group">
+<div class="w-12 h-12 bg-gold-accent/10 rounded-2xl flex items-center justify-center border border-gold-accent/20 group-hover:border-gold-accent/40">
+<span class="material-symbols-outlined text-gold-accent" data-icon="explore">explore</span>
+</div>
+<div>
+<h4 class="font-label-md text-white tracking-wide">Qibla</h4>
+<p class="font-caption text-gold-accent/50">118° SE</p>
+</div>
+</div>
+<div class="bento-card-frame p-lg rounded-3xl flex flex-col gap-lg hover:bg-gold-accent/5 transition-all cursor-pointer group">
+<div class="w-12 h-12 bg-gold-accent/10 rounded-2xl flex items-center justify-center border border-gold-accent/20 group-hover:border-gold-accent/40">
+<span class="material-symbols-outlined text-gold-accent" data-icon="volunteer_activism">volunteer_activism</span>
+</div>
+<div>
+<h4 class="font-label-md text-white tracking-wide">Zakat</h4>
+<p class="font-caption text-gold-accent/50">Wealth Ledger</p>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-[2.5rem] bg-deep-charcoal-green/90 backdrop-blur-2xl border-t border-gold-accent/10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+<div class="flex justify-around items-center px-4 pb-10 pt-4 w-full">
+<!-- Home (Active) -->
+<a class="flex flex-col items-center justify-center text-gold-accent px-4 py-2 relative" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="home" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-md text-[11px] uppercase tracking-widest">Home</span>
+<div class="absolute -bottom-1 w-1.5 h-1.5 bg-gold-accent rounded-full shadow-[0_0_8px_#D4AF37]"></div>
+</a>
+<!-- Prayer -->
+<a class="flex flex-col items-center justify-center text-white/40 px-4 py-2 hover:text-gold-accent transition-colors" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="schedule">schedule</span>
+<span class="font-label-md text-[11px] uppercase tracking-widest">Prayer</span>
+</a>
+<!-- Quran -->
+<a class="flex flex-col items-center justify-center text-white/40 px-4 py-2 hover:text-gold-accent transition-colors" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="menu_book">menu_book</span>
+<span class="font-label-md text-[11px] uppercase tracking-widest">Quran</span>
+</a>
+<!-- Ummah -->
+<a class="flex flex-col items-center justify-center text-white/40 px-4 py-2 hover:text-gold-accent transition-colors" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="groups">groups</span>
+<span class="font-label-md text-[11px] uppercase tracking-widest">Ummah</span>
+</a>
+<!-- Profile -->
+<a class="flex flex-col items-center justify-center text-white/40 px-4 py-2 hover:text-gold-accent transition-colors" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="person">person</span>
+<span class="font-label-md text-[11px] uppercase tracking-widest">Profile</span>
+</a>
+</div>
+</nav>
+<script>
+    // Subtle shimmering gold animation for the main card
+    const nextPrayerCard = document.querySelector('.glow-gold');
+    if (nextPrayerCard) {
+        setInterval(() => {
+            nextPrayerCard.style.transition = 'box-shadow 3s ease-in-out, border-color 3s ease-in-out';
+            nextPrayerCard.style.boxShadow = '0 0 45px rgba(212, 175, 55, 0.15)';
+            setTimeout(() => {
+                nextPrayerCard.style.boxShadow = '0 0 25px rgba(212, 175, 55, 0.08)';
+            }, 3000);
+        }, 6000);
+    }
+</script>
+</body></html>

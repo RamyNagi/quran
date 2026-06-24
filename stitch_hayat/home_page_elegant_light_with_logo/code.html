@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nur - Spiritual Sanctuary</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&amp;family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#003527",
+                        "primary-container": "#064e3b",
+                        "on-primary-container": "#80bea6",
+                        "secondary": "#735c00",
+                        "secondary-container": "#fed65b",
+                        "on-secondary-container": "#745c00",
+                        "gold": "#D4AF37",
+                        "gold-muted": "#B8860B",
+                        "surface": "#f8f9ff",
+                        "surface-container": "#e6eeff",
+                        "on-surface": "#121c2a",
+                        "on-surface-variant": "#404944",
+                        "outline-variant": "#bfc9c3",
+                        "background": "#f8f9ff",
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "3xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xs": "4px",
+                        "sm": "8px",
+                        "md": "16px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "2xl": "48px",
+                        "margin-mobile": "20px",
+                    },
+                    "fontFamily": {
+                        "label-md": ["Plus Jakarta Sans"],
+                        "caption": ["Plus Jakarta Sans"],
+                        "headline-lg": ["EB Garamond"],
+                        "display-lg": ["EB Garamond"],
+                        "headline-lg-mobile": ["EB Garamond"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "headline-md": ["EB Garamond"],
+                        "body-md": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "500"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .fill-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+        body {
+            background-color: #fcfdfe;
+            background-image: 
+                radial-gradient(circle at 100% 0%, rgba(212, 175, 55, 0.03) 0%, transparent 20%),
+                radial-gradient(circle at 0% 100%, rgba(0, 53, 39, 0.03) 0%, transparent 20%);
+            color: #121c2a;
+            -webkit-font-smoothing: antialiased;
+        }
+        .arabesque-overlay {
+            mask-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l3 27 27 3-27 3-3 27-3-27-27-3 27-3z' fill='%23000' fill-rule='evenodd'/%3E%3C/svg%3E");
+            mask-size: 60px 60px;
+            opacity: 0.08;
+        }
+        .arabesque-subtle {
+            background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 0l1 19 19 1-19 1-1 19-1-19L0 20l19-1z' fill='%23D4AF37' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+        }
+        .gold-border-gradient {
+            border: 1px solid transparent;
+            background-image: linear-gradient(white, white), radial-gradient(circle at top left, #D4AF37, #B8860B, transparent);
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+        }
+        .ornament-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #D4AF37;
+        }
+        .ornament-line::before, .ornament-line::after {
+            content: "";
+            height: 1px;
+            flex-grow: 1;
+            background: linear-gradient(to right, transparent, #D4AF37, transparent);
+        }
+        .decorative-frame {
+            position: relative;
+            padding: 2px;
+            background: linear-gradient(135deg, #D4AF37 0%, transparent 40%, transparent 60%, #B8860B 100%);
+        }
+    </style>
+</head>
+<body class="font-body-md text-body-md pb-32 arabesque-subtle">
+<!-- Top App Bar -->
+<header class="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-2xl flex justify-between items-center px-margin-mobile py-md border-b border-gold/10">
+<div class="flex items-center h-10">
+<img alt="Hayah Logo" class="h-full w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwyvxxbiAkWKq6vTNXSfdYjYKJyNes6bOsE6-azelYq7OHtJ8q9y2EHbHPWTn255jqvZSNA3_-qOL5NJDEUtWzTpVwsajk2TCuMHvc8QlTPL3zOoCaUWMb2sXTsNAm6Olon6Q_4MYQ1HjNGNKixnr-2MMUm41m54jyO5c5VKivO_j27BPSU1wInACjjj79mdFo9QNZhpICq2KVb464PtJoEcQgIajiLRog88WB43gg02tz6uRqZdOD0BVTcq9SUJ03ewp6n0eOYj0"/>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gold/10 transition-all active:scale-95 duration-150 ease-in-out border border-gold/20">
+<span class="material-symbols-outlined text-gold-muted" data-icon="calendar_today">calendar_today</span>
+</button>
+</header>
+<main class="mt-24 px-margin-mobile">
+<!-- Next Prayer Countdown Card with Decorative Frame -->
+<section class="mb-2xl">
+<div class="decorative-frame rounded-[2rem] overflow-hidden shadow-2xl shadow-primary/10">
+<div class="relative bg-primary-container p-lg text-on-primary">
+<div class="absolute inset-0 arabesque-overlay"></div>
+<div class="relative z-10 flex flex-col items-center text-center">
+<div class="ornament-line w-full mb-md opacity-40">
+<span class="material-symbols-outlined text-[14px]">star</span>
+</div>
+<span class="font-label-md text-label-md uppercase tracking-[0.2em] text-gold/80 mb-xs">Next Prayer</span>
+<h2 class="font-display-lg text-display-lg text-white mb-xs">Asr</h2>
+<div class="flex flex-col items-center gap-xs">
+<span class="font-headline-lg text-[40px] text-white tracking-tight" id="countdown">02:14:45</span>
+<span class="text-caption text-on-primary-container font-medium uppercase tracking-widest opacity-80">remaining</span>
+</div>
+<div class="mt-xl w-full max-w-[200px] bg-white/10 h-1 rounded-full overflow-hidden">
+<div class="bg-gold h-full w-2/3 shadow-[0_0_15px_rgba(212,175,85,0.8)]"></div>
+</div>
+<p class="mt-md text-caption text-on-primary-container italic">Zuhr was at 1:15 PM</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Quick Actions Grid -->
+<section class="mb-2xl">
+<div class="grid grid-cols-4 gap-md">
+<button class="flex flex-col items-center gap-sm group">
+<div class="w-16 h-16 rounded-2xl bg-white border border-gold/10 flex items-center justify-center group-hover:border-gold/50 group-hover:bg-primary/5 transition-all duration-300 shadow-sm">
+<span class="material-symbols-outlined text-primary" data-icon="explore">explore</span>
+</div>
+<span class="font-label-md text-[13px] text-on-surface-variant font-semibold">Qibla</span>
+</button>
+<button class="flex flex-col items-center gap-sm group">
+<div class="w-16 h-16 rounded-2xl bg-white border border-gold/10 flex items-center justify-center group-hover:border-gold/50 group-hover:bg-primary/5 transition-all duration-300 shadow-sm">
+<span class="material-symbols-outlined text-primary" data-icon="volunteer_activism">volunteer_activism</span>
+</div>
+<span class="font-label-md text-[13px] text-on-surface-variant font-semibold">Zakat</span>
+</button>
+<button class="flex flex-col items-center gap-sm group">
+<div class="w-16 h-16 rounded-2xl bg-white border border-gold/10 flex items-center justify-center group-hover:border-gold/50 group-hover:bg-primary/5 transition-all duration-300 shadow-sm">
+<span class="material-symbols-outlined text-primary" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<span class="font-label-md text-[13px] text-on-surface-variant font-semibold">Dua</span>
+</button>
+<button class="flex flex-col items-center gap-sm group">
+<div class="w-16 h-16 rounded-2xl bg-white border border-gold/10 flex items-center justify-center group-hover:border-gold/50 group-hover:bg-primary/5 transition-all duration-300 shadow-sm">
+<span class="material-symbols-outlined text-primary" data-icon="mosque">mosque</span>
+</div>
+<span class="font-label-md text-[13px] text-on-surface-variant font-semibold">Masjid</span>
+</button>
+</div>
+</section>
+<!-- Verse of the Day Card -->
+<section class="mb-2xl">
+<div class="bg-white border border-gold/20 rounded-3xl p-lg relative overflow-hidden shadow-xl shadow-gold/5">
+<div class="absolute -right-8 -top-8 opacity-[0.03] rotate-12">
+<span class="material-symbols-outlined text-[160px]" data-icon="menu_book">menu_book</span>
+</div>
+<div class="relative z-10">
+<div class="flex items-center gap-sm mb-lg">
+<span class="font-label-md text-label-md text-gold-muted uppercase tracking-[0.15em] font-bold">Verse of the Day</span>
+<div class="h-[1px] flex-grow bg-gradient-to-r from-gold/40 to-transparent"></div>
+</div>
+<blockquote class="font-headline-md text-[26px] text-primary italic mb-xl leading-[1.4] text-center px-2">
+                        "And He is with you wherever you are."
+                    </blockquote>
+<div class="flex justify-between items-center pt-md border-t border-gold/10">
+<span class="font-label-md text-label-md text-on-surface-variant italic">Surah Al-Hadid, 57:4</span>
+<div class="flex gap-md">
+<button class="w-10 h-10 rounded-full border border-gold/20 flex items-center justify-center hover:bg-gold/5 transition-colors">
+<span class="material-symbols-outlined text-gold-muted text-sm" data-icon="ios_share">ios_share</span>
+</button>
+<button class="w-10 h-10 rounded-full border border-gold/20 flex items-center justify-center hover:bg-gold/5 transition-colors">
+<span class="material-symbols-outlined text-gold-muted text-sm" data-icon="bookmark">bookmark</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Prayer Times List -->
+<section class="mb-lg">
+<div class="flex flex-col items-center mb-xl">
+<div class="ornament-line w-24 mb-xs opacity-60"></div>
+<h3 class="font-headline-md text-headline-md text-primary tracking-tight">Daily Prayer Times</h3>
+<span class="text-caption text-gold-muted font-bold tracking-widest uppercase mt-xs">Wednesday, Aug 14</span>
+</div>
+<div class="space-y-md">
+<!-- Fajr -->
+<div class="flex items-center justify-between p-lg bg-white rounded-3xl border border-gold/5 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex items-center gap-lg">
+<div class="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border border-primary/5">
+<span class="material-symbols-outlined" data-icon="wb_twilight">wb_twilight</span>
+</div>
+<span class="font-label-md text-body-lg text-on-surface font-semibold">Fajr</span>
+</div>
+<div class="flex items-center gap-lg">
+<span class="font-label-md text-body-lg text-on-surface-variant">04:12 AM</span>
+<span class="material-symbols-outlined text-gold-muted text-lg opacity-40" data-icon="notifications_active">notifications_active</span>
+</div>
+</div>
+<!-- Dhuhr -->
+<div class="flex items-center justify-between p-lg bg-white rounded-3xl border border-gold/5 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex items-center gap-lg">
+<div class="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border border-primary/5">
+<span class="material-symbols-outlined" data-icon="wb_sunny">wb_sunny</span>
+</div>
+<span class="font-label-md text-body-lg text-on-surface font-semibold">Dhuhr</span>
+</div>
+<div class="flex items-center gap-lg">
+<span class="font-label-md text-body-lg text-on-surface-variant">01:15 PM</span>
+<span class="material-symbols-outlined text-gold-muted text-lg opacity-40" data-icon="notifications_active">notifications_active</span>
+</div>
+</div>
+<!-- Asr (Active) -->
+<div class="flex items-center justify-between p-lg bg-primary/5 rounded-3xl border-2 border-gold/30 shadow-lg shadow-gold/5 relative overflow-hidden">
+<div class="absolute inset-0 arabesque-overlay opacity-5"></div>
+<div class="flex items-center gap-lg relative z-10">
+<div class="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-gold border border-gold/20 shadow-inner">
+<span class="material-symbols-outlined fill-icon" data-icon="partly_cloudy_day" style="font-variation-settings: 'FILL' 1;">partly_cloudy_day</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-body-lg text-primary font-bold">Asr</span>
+<span class="text-[10px] uppercase tracking-widest text-gold-muted font-bold">Current</span>
+</div>
+</div>
+<div class="flex items-center gap-lg relative z-10">
+<span class="font-label-md text-body-lg text-primary font-black">04:55 PM</span>
+<span class="material-symbols-outlined text-primary text-lg" data-icon="notifications_active">notifications_active</span>
+</div>
+</div>
+<!-- Maghrib -->
+<div class="flex items-center justify-between p-lg bg-white rounded-3xl border border-gold/5 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex items-center gap-lg">
+<div class="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border border-primary/5">
+<span class="material-symbols-outlined" data-icon="clear_night">clear_night</span>
+</div>
+<span class="font-label-md text-body-lg text-on-surface font-semibold">Maghrib</span>
+</div>
+<div class="flex items-center gap-lg">
+<span class="font-label-md text-body-lg text-on-surface-variant">08:24 PM</span>
+<span class="material-symbols-outlined text-gold-muted text-lg opacity-40" data-icon="notifications_active">notifications_active</span>
+</div>
+</div>
+<!-- Isha -->
+<div class="flex items-center justify-between p-lg bg-white rounded-3xl border border-gold/5 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex items-center gap-lg">
+<div class="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border border-primary/5">
+<span class="material-symbols-outlined" data-icon="bedtime">bedtime</span>
+</div>
+<span class="font-label-md text-body-lg text-on-surface font-semibold">Isha</span>
+</div>
+<div class="flex items-center gap-lg">
+<span class="font-label-md text-body-lg text-on-surface-variant">10:02 PM</span>
+<span class="material-symbols-outlined text-gold-muted text-lg opacity-40" data-icon="notifications_active">notifications_active</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Masjid Finder Banner -->
+<section class="mb-2xl pt-lg">
+<div class="rounded-[2.5rem] h-52 relative overflow-hidden group cursor-pointer border-2 border-gold/20 shadow-2xl">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-[1.5s] group-hover:scale-110" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCyh6WW0P8eIl-Pj1DpDl7PqNWW8A8Mg0v84g5o7nApbygEmQu9yZ3mjmmO2o-ACo9UakArTQlHOKXwZN7V0TGJK9Bb-zBH_l6JricE3jhq1ri7nYgfnH3IXGJIvRHbPiB5n7wFXPenISCoCoYHgwAjJbp6QnA4BoEk5mgiWY-ck2YrWLTt9Lki6bbD2vkOn8iVYO5KANC0AVPBkdcm293TVoZJsaMera3P745Snbn_Rxzzv5FDOJGYEliz3CJ8AjwMIKIckpEBgcw')">
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/30 to-transparent"></div>
+<div class="absolute inset-0 arabesque-overlay opacity-20"></div>
+<div class="absolute bottom-md left-md right-md flex justify-between items-end">
+<div class="pl-md pb-xs">
+<h4 class="font-headline-md text-[22px] text-white tracking-wide">Nearest Mosque</h4>
+<p class="text-caption text-gold font-medium uppercase tracking-widest">Regent's Park • 0.8 miles</p>
+</div>
+<div class="w-12 h-12 bg-gold rounded-full flex items-center justify-center text-primary shadow-xl group-hover:rotate-[360deg] transition-transform duration-700 mb-xs mr-xs">
+<span class="material-symbols-outlined" data-icon="directions">directions</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 w-full z-50 bg-white/80 backdrop-blur-3xl rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,53,37,0.08)] border-t border-gold/15 flex justify-around items-center px-gutter-mobile pb-8 pt-4">
+<a class="flex flex-col items-center justify-center bg-primary text-gold rounded-full w-20 h-12 shadow-lg shadow-primary/20 transition-all duration-300" href="#">
+<span class="material-symbols-outlined fill-icon text-[24px]" data-icon="home" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-md text-[10px] uppercase tracking-tighter">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-primary transition-all group" href="#">
+<span class="material-symbols-outlined text-[24px] group-hover:scale-110 transition-transform" data-icon="schedule">schedule</span>
+<span class="font-label-md text-[10px] uppercase tracking-tighter mt-1">Prayer</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-primary transition-all group" href="#">
+<span class="material-symbols-outlined text-[24px] group-hover:scale-110 transition-transform" data-icon="menu_book">menu_book</span>
+<span class="font-label-md text-[10px] uppercase tracking-tighter mt-1">Quran</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-primary transition-all group" href="#">
+<span class="material-symbols-outlined text-[24px] group-hover:scale-110 transition-transform" data-icon="groups">groups</span>
+<span class="font-label-md text-[10px] uppercase tracking-tighter mt-1">Ummah</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-primary transition-all group" href="#">
+<span class="material-symbols-outlined text-[24px] group-hover:scale-110 transition-transform" data-icon="person">person</span>
+<span class="font-label-md text-[10px] uppercase tracking-tighter mt-1">Profile</span>
+</a>
+</nav>
+<script>
+        // Simple micro-interaction for countdown
+        function updateCountdown() {
+            const el = document.getElementById('countdown');
+            if (!el) return;
+            
+            let timeStr = el.innerText;
+            let parts = timeStr.split(':');
+            let hours = parseInt(parts[0]);
+            let mins = parseInt(parts[1]);
+            let secs = parseInt(parts[2]);
+
+            secs--;
+            if (secs < 0) {
+                secs = 59;
+                mins--;
+                if (mins < 0) {
+                    mins = 59;
+                    hours--;
+                }
+            }
+
+            const format = (n) => n.toString().padStart(2, '0');
+            el.innerText = `${format(hours)}:${format(mins)}:${format(secs)}`;
+        }
+        
+        setInterval(updateCountdown, 1000);
+    </script>
+</body></html>

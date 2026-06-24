@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sakinah - Spiritual Sanctuary</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "inverse-primary": "#95d3ba",
+                    "primary-container": "#064e3b",
+                    "secondary": "#735c00",
+                    "primary-fixed-dim": "#95d3ba",
+                    "on-secondary-container": "#745c00",
+                    "primary": "#003527",
+                    "secondary-fixed": "#e9c349",
+                    "secondary-container": "#fed65b",
+                    "surface-bright": "#f8f9ff",
+                    "surface-container-high": "#dee9fc",
+                    "on-tertiary-fixed": "#002114",
+                    "error-container": "#ffdad6",
+                    "tertiary-container": "#004f35",
+                    "surface-container": "#e6eeff",
+                    "on-primary": "#ffffff",
+                    "on-background": "#121c2a",
+                    "tertiary-fixed-dim": "#45dfa4",
+                    "on-surface": "#121c2a",
+                    "surface-container-highest": "#d9e3f6",
+                    "surface-container-low": "#eff4ff",
+                    "outline-variant": "#bfc9c3",
+                    "on-secondary-fixed": "#241a00",
+                    "on-tertiary-container": "#23ca90",
+                    "surface-variant": "#d9e3f6",
+                    "on-primary-fixed": "#002117",
+                    "on-surface-variant": "#404944",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "on-error": "#ffffff",
+                    "tertiary-fixed": "#68fcbf",
+                    "on-secondary": "#ffffff",
+                    "inverse-surface": "#27313f",
+                    "on-error-container": "#93000a",
+                    "on-primary-container": "#80bea6",
+                    "secondary-fixed-dim": "#e9c349",
+                    "on-tertiary-fixed-variant": "#005137",
+                    "background": "#020f0c",
+                    "error": "#ba1a1a",
+                    "outline": "#707974",
+                    "surface-dim": "#010807",
+                    "surface": "#020f0c",
+                    "inverse-on-surface": "#eaf1ff",
+                    "tertiary": "#003623",
+                    "surface-tint": "#2b6954",
+                    "primary-fixed": "#b0f0d6",
+                    "on-primary-fixed-variant": "#0b513d",
+                    "on-secondary-fixed-variant": "#574500"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "2xl": "1.5rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xs": "4px",
+                    "xl": "32px",
+                    "2xl": "48px",
+                    "3xl": "64px",
+                    "gutter-mobile": "12px",
+                    "margin-mobile": "20px",
+                    "sm": "8px",
+                    "md": "16px",
+                    "unit": "4px",
+                    "lg": "24px"
+            },
+            "fontFamily": {
+                    "label-md": ["Plus Jakarta Sans"],
+                    "caption": ["Plus Jakarta Sans"],
+                    "headline-lg": ["EB Garamond"],
+                    "display-lg": ["EB Garamond"],
+                    "headline-lg-mobile": ["EB Garamond"],
+                    "body-lg": ["Plus Jakarta Sans"],
+                    "headline-md": ["EB Garamond"],
+                    "body-md": ["Plus Jakarta Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #010807;
+            color: #d9e3f6;
+            -webkit-font-smoothing: antialiased;
+        }
+        .arabesque-pattern {
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l2.5 15L45 5l-10 12.5L60 30l-25 2.5L45 55l-12.5-10L30 60l-2.5-15L15 55l10-12.5L0 30l25-2.5L15 5l12.5 10L30 0z' fill='%23e9c349' fill-opacity='0.05'/%3E%3C/svg%3E");
+        }
+        .glass-panel {
+            background: rgba(6, 78, 59, 0.15);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(233, 195, 73, 0.1);
+        }
+        .gold-border-gradient {
+            border: 1px solid transparent;
+            background: linear-gradient(#020f0c, #020f0c) padding-box,
+                        linear-gradient(135deg, #e9c349 0%, transparent 50%, #e9c349 100%) border-box;
+        }
+        .prayer-active {
+            background: linear-gradient(135deg, #064e3b 0%, #002117 100%);
+            border: 1.5px solid #e9c349;
+            box-shadow: 0 10px 30px -10px rgba(233, 195, 73, 0.2);
+        }
+        .decorative-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, #e9c349 50%, transparent 100%);
+            position: relative;
+        }
+        .decorative-divider::before, .decorative-divider::after {
+            content: '✦';
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #e9c349;
+            font-size: 10px;
+        }
+        .decorative-divider::before { left: 45%; }
+        .decorative-divider::after { right: 45%; }
+
+        @keyframes shimmering {
+            0% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+            100% { opacity: 0.3; }
+        }
+        .shimmer { animation: shimmering 4s infinite ease-in-out; }
+    </style>
+</head>
+<body class="font-body-md text-on-surface-variant overflow-x-hidden arabesque-pattern">
+<!-- Header -->
+<nav class="fixed top-0 w-full z-50 bg-surface-dim/90 backdrop-blur-2xl border-b border-secondary-fixed/10 py-md px-margin-mobile flex justify-between items-center">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary-fixed text-[20px]" data-icon="location_on">location_on</span>
+<span class="font-label-md text-[12px] tracking-[0.1em] text-secondary-fixed/80">12 RAMADAN • LONDON</span>
+</div>
+<div class="h-8 w-8 flex items-center justify-center"><img alt="HAYAH Logo" class="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwyvxxbiAkWKq6vTNXSfdYjYKJyNes6bOsE6-azelYq7OHtJ8q9y2EHbHPWTn255jqvZSNA3_-qOL5NJDEUtWzTpVwsajk2TCuMHvc8QlTPL3zOoCaUWMb2sXTsNAm6Olon6Q_4MYQ1HjNGNKixnr-2MMUm41m54jyO5c5VKivO_j27BPSU1wInACjjj79mdFo9QNZhpICq2KVb464PtJoEcQgIajiLRog88WB43gg02tz6uRqZdOD0BVTcq9SUJ03ewp6n0eOYj0"/></div>
+<div class="flex items-center gap-md">
+<span class="material-symbols-outlined text-secondary-fixed/80" data-icon="calendar_month">calendar_month</span>
+</div>
+</nav>
+<!-- Hero Section -->
+<header class="relative min-h-[90vh] flex flex-col items-center justify-center pt-2xl overflow-hidden px-margin-mobile text-center">
+<div class="relative z-10 max-w-xl">
+<div class="mb-lg inline-flex items-center gap-xs">
+<div class="h-[1px] w-8 bg-secondary-fixed/30"></div>
+<span class="text-secondary-fixed font-label-md tracking-[0.2em] uppercase text-[11px]">Est. 1445 AH</span>
+<div class="h-[1px] w-8 bg-secondary-fixed/30"></div>
+</div>
+<h1 class="font-display-lg text-[56px] text-inverse-primary mb-lg leading-[1.1] tracking-tight">
+            Find Your Inner <br/> <span class="italic text-secondary-fixed font-medium">Sakinah</span>
+</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant/70 mb-xl leading-relaxed">
+            A curated digital sanctuary for the modern soul, <br class="hidden md:block"/> crafted for moments of deep spiritual alignment.
+        </p>
+<div class="flex flex-col sm:flex-row justify-center gap-md">
+<button class="bg-secondary-fixed text-primary px-3xl py-md rounded-full font-label-md tracking-wider shadow-xl shadow-secondary-fixed/10 transition-transform active:scale-95">
+                BEGIN REFLECTION
+            </button>
+<button class="border border-secondary-fixed/30 text-secondary-fixed px-3xl py-md rounded-full font-label-md tracking-wider hover:bg-secondary-fixed/5 transition-colors">
+                EXPLORE QURAN
+            </button>
+</div>
+</div>
+<!-- Decorative Moon Element -->
+<div class="absolute bottom-12 left-1/2 -translate-x-1/2 opacity-30 flex flex-col items-center">
+<span class="material-symbols-outlined text-[64px] text-secondary-fixed" data-icon="dark_mode">dark_mode</span>
+<div class="mt-xl h-24 w-[1px] bg-gradient-to-b from-secondary-fixed to-transparent"></div>
+</div>
+</header>
+<!-- Prayer Times Section -->
+<section class="relative py-3xl px-margin-mobile">
+<div class="max-w-5xl mx-auto">
+<div class="flex flex-col items-center mb-2xl text-center">
+<span class="material-symbols-outlined text-secondary-fixed mb-sm" data-icon="settings_input_component">settings_input_component</span>
+<h2 class="font-headline-lg text-headline-lg text-inverse-primary tracking-wide">Devotional Rhythms</h2>
+<div class="decorative-divider w-48 mt-md"></div>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-5 gap-md">
+<!-- Fajr -->
+<div class="glass-panel p-xl rounded-2xl flex flex-col items-center border-t border-secondary-fixed/20">
+<span class="font-label-md text-[10px] text-on-surface-variant/60 uppercase tracking-[0.2em] mb-sm">Fajr</span>
+<span class="font-headline-md text-headline-md text-inverse-primary">04:12</span>
+</div>
+<!-- Dhuhr -->
+<div class="glass-panel p-xl rounded-2xl flex flex-col items-center">
+<span class="font-label-md text-[10px] text-on-surface-variant/60 uppercase tracking-[0.2em] mb-sm">Dhuhr</span>
+<span class="font-headline-md text-headline-md text-inverse-primary">13:04</span>
+</div>
+<!-- Asr -->
+<div class="glass-panel p-xl rounded-2xl flex flex-col items-center">
+<span class="font-label-md text-[10px] text-on-surface-variant/60 uppercase tracking-[0.2em] mb-sm">Asr</span>
+<span class="font-headline-md text-headline-md text-inverse-primary">16:42</span>
+</div>
+<!-- Maghrib - Active -->
+<div class="prayer-active p-xl rounded-2xl flex flex-col items-center relative overflow-hidden">
+<div class="absolute inset-0 opacity-10 arabesque-pattern pointer-events-none"></div>
+<span class="font-label-md text-[10px] text-secondary-fixed uppercase tracking-[0.2em] mb-sm">Maghrib</span>
+<span class="font-headline-md text-headline-md text-white">18:21</span>
+<div class="absolute -bottom-1 -right-1">
+<span class="material-symbols-outlined text-secondary-fixed text-lg" data-icon="fiber_manual_record">fiber_manual_record</span>
+</div>
+</div>
+<!-- Isha -->
+<div class="glass-panel p-xl rounded-2xl flex flex-col items-center">
+<span class="font-label-md text-[10px] text-on-surface-variant/60 uppercase tracking-[0.2em] mb-sm">Isha</span>
+<span class="font-headline-md text-headline-md text-inverse-primary">20:15</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Verse of the Moment -->
+<section class="py-3xl relative">
+<div class="max-w-4xl mx-auto px-margin-mobile">
+<div class="gold-border-gradient rounded-3xl p-2xl md:p-3xl text-center relative overflow-hidden">
+<div class="absolute top-0 right-0 w-32 h-32 opacity-10 arabesque-pattern pointer-events-none"></div>
+<div class="absolute bottom-0 left-0 w-32 h-32 opacity-10 arabesque-pattern pointer-events-none"></div>
+<span class="material-symbols-outlined text-secondary-fixed text-5xl mb-lg" data-icon="format_quote">format_quote</span>
+<h3 class="font-headline-lg text-[32px] md:text-[40px] text-white mb-xl italic leading-tight">
+                "Verily, in the remembrance of Allah do hearts find rest."
+            </h3>
+<div class="flex items-center justify-center gap-md mb-2xl">
+<div class="h-[1px] w-12 bg-secondary-fixed/20"></div>
+<p class="font-label-md text-secondary-fixed tracking-[0.2em] text-[12px]">SURAH AR-RA'D • 13:28</p>
+<div class="h-[1px] w-12 bg-secondary-fixed/20"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-md">
+<div class="glass-panel p-lg rounded-xl text-left border-l-2 border-l-secondary-fixed/40">
+<span class="material-symbols-outlined text-secondary-fixed text-xl mb-xs" data-icon="auto_stories">auto_stories</span>
+<h4 class="font-label-md text-white mb-1">Continue Reading</h4>
+<p class="text-[13px] text-on-surface-variant/70 italic">Surah Al-Kahf, Ayah 12</p>
+</div>
+<div class="glass-panel p-lg rounded-xl text-left border-l-2 border-l-secondary-fixed/40">
+<span class="material-symbols-outlined text-secondary-fixed text-xl mb-xs" data-icon="volunteer_activism">volunteer_activism</span>
+<h4 class="font-label-md text-white mb-1">Daily Tasbih</h4>
+<p class="text-[13px] text-on-surface-variant/70 italic">33% of goal achieved</p>
+</div>
+<div class="glass-panel p-lg rounded-xl text-left border-l-2 border-l-secondary-fixed/40">
+<span class="material-symbols-outlined text-secondary-fixed text-xl mb-xs" data-icon="psychology_alt">psychology_alt</span>
+<h4 class="font-label-md text-white mb-1">New Insight</h4>
+<p class="text-[13px] text-on-surface-variant/70 italic">The Sunnah of Tahajjud</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Community Section -->
+<section class="py-3xl px-margin-mobile">
+<div class="max-w-6xl mx-auto flex flex-col md:flex-row gap-3xl items-center">
+<div class="w-full md:w-1/2 relative">
+<!-- Decorative Frame Around Image -->
+<div class="p-4 border border-secondary-fixed/20 rounded-[2.5rem] relative">
+<div class="aspect-square rounded-[2rem] overflow-hidden glass-panel p-1">
+<img alt="Sacred Architecture" class="w-full h-full object-cover rounded-[1.8rem] opacity-70 contrast-[1.1] grayscale-[0.2]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnSCKEi_hQog8wXSvqh0KVAZrLf2ToLQX7mASLasvbbMhHxX_vXwVrrJ8TvhYdhcbr4OrczHVwqVm34rLXwTnhzdy4V9m3wxLAjxqIY-MpeYm0uJLaQx6jfbbh3lGDGjTQLgTeKf4tuAjeBXX3RGzZQDqiQCKl9qfhetthwVy-5l-mQt-zEu2IN2RIXUP4_iXUFpPq1Dr9LIt4J_A_6MlV9wdmI9SkfMLVSRxFvg1ChE_Cl2vNllF_Pqf_HoILcLnX6AaZXB6D-aw"/>
+</div>
+<!-- Motif corners -->
+<div class="absolute -top-1 -left-1 text-secondary-fixed/40 text-xl">✦</div>
+<div class="absolute -top-1 -right-1 text-secondary-fixed/40 text-xl">✦</div>
+<div class="absolute -bottom-1 -left-1 text-secondary-fixed/40 text-xl">✦</div>
+<div class="absolute -bottom-1 -right-1 text-secondary-fixed/40 text-xl">✦</div>
+</div>
+<div class="absolute -bottom-6 -right-6 glass-panel py-md px-xl rounded-2xl border border-secondary-fixed/30 shadow-2xl">
+<p class="font-headline-md text-secondary-fixed leading-none">2,400+</p>
+<p class="font-label-md text-[10px] text-on-surface-variant/80 uppercase tracking-widest mt-1">Sojourners</p>
+</div>
+</div>
+<div class="w-full md:w-1/2">
+<h2 class="font-display-lg text-[40px] text-inverse-primary mb-lg leading-tight">Sacred Connection</h2>
+<p class="font-body-lg text-on-surface-variant/80 mb-2xl leading-relaxed">
+                Walk the path with a global Ummah. Our collective devotion creates a resonance that transcends borders, bringing us closer to the Source.
+            </p>
+<ul class="space-y-lg">
+<li class="flex items-start gap-md group">
+<div class="h-10 w-10 rounded-full glass-panel flex items-center justify-center text-secondary-fixed group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-lg" data-icon="hub">hub</span>
+</div>
+<div>
+<p class="font-label-md text-white tracking-wide">Prayer Circles</p>
+<p class="text-sm text-on-surface-variant/60 mt-1">Intimate spaces for shared intentions.</p>
+</div>
+</li>
+<li class="flex items-start gap-md group">
+<div class="h-10 w-10 rounded-full glass-panel flex items-center justify-center text-secondary-fixed group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-lg" data-icon="language">language</span>
+</div>
+<div>
+<p class="font-label-md text-white tracking-wide">Global Resonance</p>
+<p class="text-sm text-on-surface-variant/60 mt-1">Real-time participation in midnight prayers.</p>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</section>
+<!-- Footer -->
+<footer class="pb-32 pt-3xl text-center px-margin-mobile">
+<div class="decorative-divider w-1/3 mx-auto mb-2xl"></div>
+<p class="font-display-lg text-[48px] text-secondary-fixed opacity-10 italic tracking-tighter mb-md">Sakinah</p>
+<p class="font-label-md text-[11px] text-on-surface-variant/30 tracking-[0.3em] uppercase">© 1445 AH • CURATED FOR THE SOUL</p>
+</footer>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 w-full z-50 bg-surface-dim/90 backdrop-blur-3xl border-t border-secondary-fixed/5 px-gutter-mobile pb-8 pt-xs flex justify-around items-center">
+<a class="flex flex-col items-center justify-center text-secondary-fixed px-4 py-2" href="#">
+<span class="material-symbols-outlined" data-icon="home" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="text-[10px] font-label-md tracking-widest mt-1 uppercase">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/50 hover:text-secondary-fixed transition-colors px-4 py-2" href="#">
+<span class="material-symbols-outlined" data-icon="schedule">schedule</span>
+<span class="text-[10px] font-label-md tracking-widest mt-1 uppercase">Salat</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/50 hover:text-secondary-fixed transition-colors px-4 py-2" href="#">
+<span class="material-symbols-outlined" data-icon="menu_book">menu_book</span>
+<span class="text-[10px] font-label-md tracking-widest mt-1 uppercase">Quran</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/50 hover:text-secondary-fixed transition-colors px-4 py-2" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+<span class="text-[10px] font-label-md tracking-widest mt-1 uppercase">Ummah</span>
+</a>
+</nav>
+<script>
+    document.addEventListener('scroll', () => {
+        const scroll = window.scrollY;
+        const hero = document.querySelector('header .max-w-xl');
+        const moon = document.querySelector('header .absolute.bottom-12');
+        
+        if (hero) {
+            hero.style.transform = `translateY(${scroll * 0.15}px)`;
+            hero.style.opacity = 1 - (scroll / 500);
+        }
+        if (moon) {
+            moon.style.transform = `translateX(-50%) translateY(${scroll * 0.3}px)`;
+        }
+    });
+</script>
+</body></html>
