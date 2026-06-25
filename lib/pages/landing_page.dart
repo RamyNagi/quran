@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../controllers/app_controller.dart';
+import '../widgets/app_bottom_nav.dart';
 import '../widgets/arabesque_painter.dart';
 
 class LandingPage extends StatelessWidget {
@@ -45,7 +46,7 @@ class LandingPage extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context, controller, goldColor),
+      bottomNavigationBar: const AppBottomNav(currentIndex: 0),
     );
   }
 
@@ -225,15 +226,7 @@ class LandingPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(30.r),
                   ),
                 ),
-                onPressed: () {
-                  Get.snackbar(
-                    'title'.tr,
-                    'explore_quran'.tr,
-                    snackPosition: SnackPosition.BOTTOM,
-                    backgroundColor: goldColor.withValues(alpha: 0.2),
-                    colorText: theme.colorScheme.onSurface,
-                  );
-                },
+                onPressed: () => controller.navigateToPage(2),
                 child: Text(
                   'explore_quran'.tr,
                   style: TextStyle(
@@ -726,114 +719,4 @@ class LandingPage extends StatelessWidget {
   }
 
   // ── Bottom Nav ─────────────────────────────────────────────────────────────
-  Widget _buildBottomNav(
-    BuildContext context,
-    AppController controller,
-    Color goldColor,
-  ) {
-    final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor.withValues(alpha: 0.95),
-        border: Border(
-          top: BorderSide(color: goldColor.withValues(alpha: 0.1), width: 1),
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 8.h),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildBottomNavItem(
-                Icons.home,
-                'home'.tr,
-                true,
-                goldColor,
-                () {},
-              ),
-              _buildBottomNavItem(
-                Icons.schedule,
-                'salat'.tr,
-                false,
-                goldColor,
-                () => controller.navigateToPage(1),
-              ),
-              _buildBottomNavItem(
-                Icons.menu_book,
-                'quran'.tr,
-                false,
-                goldColor,
-                () {
-                  Get.snackbar(
-                    'quran'.tr,
-                    'explore_quran'.tr,
-                    snackPosition: SnackPosition.BOTTOM,
-                  );
-                },
-              ),
-              _buildBottomNavItem(
-                Icons.groups,
-                'ummah'.tr,
-                false,
-                goldColor,
-                () {
-                  Get.snackbar(
-                    'ummah'.tr,
-                    'prayer_circles'.tr,
-                    snackPosition: SnackPosition.BOTTOM,
-                  );
-                },
-              ),
-              _buildBottomNavItem(
-                Icons.person,
-                'profile'.tr,
-                false,
-                goldColor,
-                () => controller.navigateToPage(5),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavItem(
-    IconData icon,
-    String label,
-    bool isActive,
-    Color goldColor,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 22.r,
-              color: isActive ? goldColor : Colors.grey.withValues(alpha: 0.6),
-            ),
-            SizedBox(height: 4.h),
-            Text(
-              label.toUpperCase(),
-              style: TextStyle(
-                fontSize: 9.sp,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.0,
-                color: isActive
-                    ? goldColor
-                    : Colors.grey.withValues(alpha: 0.6),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

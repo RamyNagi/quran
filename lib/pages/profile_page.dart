@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../controllers/app_controller.dart';
+import '../widgets/app_bottom_nav.dart';
 import '../widgets/arabesque_painter.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -108,10 +109,7 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: _ProfileBottomNav(
-        controller: controller,
-        goldColor: goldColor,
-      ),
+      bottomNavigationBar: const AppBottomNav(currentIndex: 5),
     );
   }
 }
@@ -170,60 +168,6 @@ class _SettingsCard extends StatelessWidget {
           SizedBox(width: 8.w),
           Flexible(child: trailing),
         ],
-      ),
-    );
-  }
-}
-
-class _ProfileBottomNav extends StatelessWidget {
-  const _ProfileBottomNav({required this.controller, required this.goldColor});
-
-  final AppController controller;
-  final Color goldColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor.withValues(alpha: 0.95),
-        border: Border(
-          top: BorderSide(color: goldColor.withValues(alpha: 0.1)),
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: NavigationBar(
-          backgroundColor: Colors.transparent,
-          indicatorColor: goldColor.withValues(alpha: 0.15),
-          selectedIndex: 4,
-          onDestinationSelected: (index) {
-            if (index == 0) controller.navigateToPage(0);
-            if (index == 1) controller.navigateToPage(1);
-          },
-          destinations: [
-            NavigationDestination(
-              icon: const Icon(Icons.home),
-              label: 'home'.tr,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.schedule),
-              label: 'salat'.tr,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.menu_book),
-              label: 'quran'.tr,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.groups),
-              label: 'ummah'.tr,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.person),
-              label: 'profile'.tr,
-            ),
-          ],
-        ),
       ),
     );
   }

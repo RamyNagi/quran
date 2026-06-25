@@ -5,17 +5,45 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'controllers/app_controller.dart';
+import 'controllers/prayer_controller.dart';
+import 'controllers/quran_controller.dart';
 import 'localization/app_translations.dart';
 import 'theme/app_theme.dart';
-import 'pages/landing_page.dart';
 import 'pages/home_page.dart';
 import 'pages/profile_page.dart';
+import 'pages/quran_page.dart';
+import 'pages/salat_page.dart';
+import 'services/audio_service.dart';
+import 'services/notification_service.dart';
+import 'services/prayer_service.dart';
+import 'services/qibla_service.dart';
+import 'services/quran_service.dart';
+import 'services/storage_service.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Register the GetX Controller
-  Get.put(AppController());
+  final storage = StorageService();
+  await storage.init();
+
+  Get.put(storage, permanent: true);
+  Get.put(NotificationService(storage), permanent: true);
+  Get.put(PrayerService(storage), permanent: true);
+  Get.put(QuranService(storage), permanent: true);
+  Get.put(QuranAudioService(), permanent: true);
+  Get.put(QiblaService(), permanent: true);
+  Get.put(AppController(storage), permanent: true);
+  Get.put(
+    PrayerController(
+      Get.find<PrayerService>(),
+      Get.find<NotificationService>(),
+    ),
+    permanent: true,
+  );
+  Get.put(
+    QuranController(Get.find<QuranService>(), Get.find<QuranAudioService>()),
+    permanent: true,
+  );
 
   runApp(const MyApp());
 }
@@ -33,7 +61,7 @@ class MyApp extends StatelessWidget {
       designSize: const Size(390, 844),
       minTextAdapt: true,
       splitScreenMode: true,
-      builder: (_, __) => Obx(
+      builder: (_, _) => Obx(
         () => GetMaterialApp(
           title: 'Hayah',
           debugShowCheckedModeBanner: false,
@@ -114,11 +142,13 @@ class MainRouter extends StatelessWidget {
     return Obx(() {
       switch (controller.activePageIndex.value) {
         case 1:
-          return const HomePage();
+          return const SalatPage();
+        case 2:
+          return const QuranPage();
         case 5:
           return const ProfilePage();
         default:
-          return const LandingPage();
+          return const HomePage();
       }
     });
   }
