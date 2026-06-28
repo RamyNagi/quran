@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
@@ -13,10 +12,13 @@ import 'pages/home_page.dart';
 import 'pages/profile_page.dart';
 import 'pages/quran_page.dart';
 import 'pages/salat_page.dart';
+import 'pages/sunnah_page.dart';
 import 'services/audio_service.dart';
+import 'services/memorization_speech_service.dart';
 import 'services/notification_service.dart';
 import 'services/prayer_service.dart';
 import 'services/qibla_service.dart';
+import 'services/quran_library_bootstrap.dart';
 import 'services/quran_service.dart';
 import 'services/storage_service.dart';
 
@@ -25,12 +27,14 @@ Future<void> main() async {
 
   final storage = StorageService();
   await storage.init();
+  await initQuranLibrary();
 
   Get.put(storage, permanent: true);
   Get.put(NotificationService(storage), permanent: true);
   Get.put(PrayerService(storage), permanent: true);
   Get.put(QuranService(storage), permanent: true);
   Get.put(QuranAudioService(), permanent: true);
+  Get.put(MemorizationSpeechService(), permanent: true);
   Get.put(QiblaService(), permanent: true);
   Get.put(AppController(storage), permanent: true);
   Get.put(
@@ -40,9 +44,12 @@ Future<void> main() async {
     ),
     permanent: true,
   );
-  Get.put(
-    QuranController(Get.find<QuranService>(), Get.find<QuranAudioService>()),
-    permanent: true,
+  Get.lazyPut(
+    () => QuranController(
+      Get.find<QuranService>(),
+      Get.find<QuranAudioService>(),
+    ),
+    fenix: true,
   );
 
   runApp(const MyApp());
@@ -115,7 +122,7 @@ class _StartupSplashState extends State<StartupSplash> {
   @override
   Widget build(BuildContext context) {
     if (_showApp) {
-      return const MainRouter();
+      return const UserNameGate();
     }
 
     return ColoredBox(
@@ -126,6 +133,125 @@ class _StartupSplashState extends State<StartupSplash> {
           width: MediaQuery.sizeOf(context).width,
           height: MediaQuery.sizeOf(context).height,
           fit: BoxFit.contain,
+        ),
+      ),
+    );
+  }
+}
+
+class UserNameGate extends StatelessWidget {
+  const UserNameGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final AppController controller = Get.find<AppController>();
+
+    return Obx(
+      () => controller.hasUserName ? const MainRouter() : const UserNamePage(),
+    );
+  }
+}
+
+class UserNamePage extends StatefulWidget {
+  const UserNamePage({super.key});
+
+  @override
+  State<UserNamePage> createState() => _UserNamePageState();
+}
+
+class _UserNamePageState extends State<UserNamePage> {
+  final _nameController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveName() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) return;
+    await Get.find<AppController>().setUserName(name);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const goldColor = Color(0xFFD4AF37);
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Icon(Icons.mosque, color: goldColor, size: 54),
+                  const SizedBox(height: 18),
+                  Text(
+                    'مرحباً بك في حياة',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'اكتب اسمك ليظهر داخل التطبيق بدل الاسم الافتراضي.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.white70,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  TextField(
+                    controller: _nameController,
+                    autofocus: true,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _saveName(),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'اسمك',
+                      labelStyle: const TextStyle(color: Colors.white70),
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.07),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.16),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: goldColor),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: goldColor,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: _saveName,
+                    icon: const Icon(Icons.check_rounded),
+                    label: const Text(
+                      'متابعة',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -145,6 +271,8 @@ class MainRouter extends StatelessWidget {
           return const SalatPage();
         case 2:
           return const QuranPage();
+        case 3:
+          return const SunnahPage();
         case 5:
           return const ProfilePage();
         default:

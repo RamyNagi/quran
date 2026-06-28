@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../controllers/app_controller.dart';
+import '../controllers/prayer_controller.dart';
+import '../services/quran_service.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/arabesque_painter.dart';
 
@@ -11,6 +13,8 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppController controller = Get.find<AppController>();
+    final PrayerController prayerController = Get.find<PrayerController>();
+    final QuranService quranService = Get.find<QuranService>();
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final goldColor = isDark
@@ -31,13 +35,18 @@ class HomePage extends StatelessWidget {
                     SizedBox(height: 20.h),
                     _buildWelcomeSection(context, controller, goldColor),
                     SizedBox(height: 24.h),
-                    _buildNextPrayerCard(context, controller, goldColor),
+                    _buildNextPrayerCard(context, prayerController, goldColor),
                     SizedBox(height: 24.h),
                     _buildOrnamentDivider(goldColor),
                     SizedBox(height: 16.h),
-                    _buildPrayerTimesList(context, goldColor),
+                    _buildPrayerTimesList(context, prayerController, goldColor),
                     SizedBox(height: 24.h),
-                    _buildDailyInspiration(context, goldColor),
+                    _buildDailyInspiration(
+                      context,
+                      controller,
+                      quranService,
+                      goldColor,
+                    ),
                     SizedBox(height: 24.h),
                     _buildBentoActions(context, goldColor),
                     SizedBox(height: 100.h),
@@ -139,11 +148,14 @@ class HomePage extends StatelessWidget {
           ),
         ),
         SizedBox(height: 4.h),
-        Text(
-          'user_name'.tr,
-          style: theme.textTheme.displayLarge?.copyWith(
-            fontSize: 36.sp,
-            fontWeight: FontWeight.bold,
+        Obx(
+          () => Text(
+            controller.userName.value,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.displayLarge?.copyWith(
+              fontSize: 36.sp,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],
@@ -153,115 +165,136 @@ class HomePage extends StatelessWidget {
   // ── Next Prayer Card ───────────────────────────────────────────────────────
   Widget _buildNextPrayerCard(
     BuildContext context,
-    AppController controller,
+    PrayerController controller,
     Color goldColor,
   ) {
     final theme = Theme.of(context);
-    return Container(
-      padding: EdgeInsets.all(2.r),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30.r),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            goldColor.withValues(alpha: 0.3),
-            goldColor.withValues(alpha: 0.05),
-            goldColor.withValues(alpha: 0.2),
-          ],
-        ),
-      ),
-      child: Container(
-        padding: EdgeInsets.all(20.r),
+    return Obx(() {
+      final day = controller.prayerDay.value;
+      if (day == null) {
+        return Container(
+          height: 180.h,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: theme.cardTheme.color,
+            borderRadius: BorderRadius.circular(24.r),
+            border: Border.all(color: goldColor.withValues(alpha: 0.18)),
+          ),
+          child: CircularProgressIndicator(color: goldColor),
+        );
+      }
+
+      return Container(
+        padding: EdgeInsets.all(2.r),
         decoration: BoxDecoration(
-          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(28.r),
+          borderRadius: BorderRadius.circular(30.r),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              goldColor.withValues(alpha: 0.3),
+              goldColor.withValues(alpha: 0.05),
+              goldColor.withValues(alpha: 0.2),
+            ],
+          ),
         ),
-        child: Column(
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.notifications_active,
-                            color: goldColor,
-                            size: 14.r,
-                          ),
-                          SizedBox(width: 6.w),
-                          Expanded(
-                            child: Text(
-                              'upcoming_prayer'.tr.toUpperCase(),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.labelMedium?.copyWith(
-                                color: goldColor,
-                                fontSize: 10.sp,
-                                fontWeight: FontWeight.bold,
+        child: Container(
+          padding: EdgeInsets.all(20.r),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+            borderRadius: BorderRadius.circular(28.r),
+          ),
+          child: Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.notifications_active,
+                              color: goldColor,
+                              size: 14.r,
+                            ),
+                            SizedBox(width: 6.w),
+                            Expanded(
+                              child: Text(
+                                'upcoming_prayer'.tr.toUpperCase(),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: goldColor,
+                                  fontSize: 10.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
+                          ],
+                        ),
+                        SizedBox(height: 8.h),
+                        Text(
+                          day.nextPrayerKey.tr,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.displayLarge?.copyWith(
+                            fontSize: 32.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
-                        ],
-                      ),
-                      SizedBox(height: 8.h),
+                        ),
+                        SizedBox(height: 4.h),
+                        Text(
+                          'in_time'.trParams({
+                            'time': controller.countdownText(),
+                          }),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.inversePrimary,
+                            fontStyle: FontStyle.italic,
+                            fontSize: 13.sp,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
                       Text(
-                        'maghrib'.tr,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.displayLarge?.copyWith(
-                          fontSize: 32.sp,
+                        controller.formatTime(day.nextPrayerTime),
+                        style: TextStyle(
+                          fontSize: 36.sp,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
                       SizedBox(height: 4.h),
-                      Text(
-                        'in_minutes'.trParams({'val': '42'}),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.inversePrimary,
-                          fontStyle: FontStyle.italic,
-                          fontSize: 13.sp,
+                      SizedBox(
+                        width: 110.w,
+                        child: Text(
+                          day.locationLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.end,
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            color: goldColor.withValues(alpha: 0.6),
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ),
-                SizedBox(width: 12.w),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '18:14',
-                      style: TextStyle(
-                        fontSize: 36.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      '${'sunset'.tr} 18:12',
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        color: goldColor.withValues(alpha: 0.6),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            SizedBox(height: 20.h),
-            // Progress bar
-            Obx(
-              () => Container(
+                ],
+              ),
+              SizedBox(height: 20.h),
+              Container(
                 height: 4.h,
                 width: double.infinity,
                 decoration: BoxDecoration(
@@ -270,7 +303,7 @@ class HomePage extends StatelessWidget {
                 ),
                 child: FractionallySizedBox(
                   alignment: Alignment.centerLeft,
-                  widthFactor: controller.prayerProgress.value.clamp(0.0, 1.0),
+                  widthFactor: controller.nextPrayerProgress(),
                   child: Container(
                     decoration: BoxDecoration(
                       color: goldColor,
@@ -286,11 +319,11 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   // ── Ornament Divider ───────────────────────────────────────────────────────
@@ -332,86 +365,77 @@ class HomePage extends StatelessWidget {
   }
 
   // ── Prayer Times List ──────────────────────────────────────────────────────
-  Widget _buildPrayerTimesList(BuildContext context, Color goldColor) {
+  Widget _buildPrayerTimesList(
+    BuildContext context,
+    PrayerController controller,
+    Color goldColor,
+  ) {
     final theme = Theme.of(context);
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'prayer_times'.tr.toUpperCase(),
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: goldColor,
-                fontSize: 14.sp,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Get.snackbar(
-                  'settings',
-                  'adjust_settings'.tr,
-                  snackPosition: SnackPosition.BOTTOM,
-                );
-              },
-              child: Text(
-                'adjust_settings'.tr,
-                style: TextStyle(
-                  color: goldColor.withValues(alpha: 0.6),
-                  fontSize: 12.sp,
+    return Obx(() {
+      final day = controller.prayerDay.value;
+      if (day == null) return const SizedBox.shrink();
+
+      return Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'prayer_times'.tr.toUpperCase(),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: goldColor,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-          ],
-        ),
-        SizedBox(height: 10.h),
-        Column(
-          children: [
-            _buildPrayerRow(
-              context,
-              Icons.wb_twilight,
-              'fajr'.tr,
-              '04:32',
-              goldColor,
-            ),
-            SizedBox(height: 10.h),
-            _buildPrayerRow(
-              context,
-              Icons.wb_sunny,
-              'dhuhr'.tr,
-              '12:58',
-              goldColor,
-            ),
-            SizedBox(height: 10.h),
-            _buildPrayerRow(
-              context,
-              Icons.light_mode,
-              'asr'.tr,
-              '16:24',
-              goldColor,
-            ),
-            SizedBox(height: 10.h),
-            _buildPrayerRow(
-              context,
-              Icons.wb_twilight,
-              'maghrib'.tr,
-              '18:14',
-              goldColor,
-              isHighlighted: true,
-            ),
-            SizedBox(height: 10.h),
-            _buildPrayerRow(
-              context,
-              Icons.dark_mode,
-              'isha'.tr,
-              '20:30',
-              goldColor,
-            ),
-          ],
-        ),
-      ],
-    );
+              TextButton(
+                onPressed: () => Get.find<AppController>().navigateToPage(1),
+                child: Text(
+                  'adjust_settings'.tr,
+                  style: TextStyle(
+                    color: goldColor.withValues(alpha: 0.6),
+                    fontSize: 12.sp,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 10.h),
+          Column(
+            children: [
+              for (final prayer in day.prayers) ...[
+                _buildPrayerRow(
+                  context,
+                  _prayerIcon(prayer.key),
+                  prayer.labelKey.tr,
+                  controller.formatTime(prayer.time),
+                  goldColor,
+                  isHighlighted: prayer.key == day.nextPrayerKey,
+                ),
+                SizedBox(height: 10.h),
+              ],
+            ],
+          ),
+        ],
+      );
+    });
+  }
+
+  IconData _prayerIcon(String key) {
+    switch (key) {
+      case 'fajr':
+        return Icons.wb_twilight;
+      case 'dhuhr':
+        return Icons.wb_sunny;
+      case 'asr':
+        return Icons.light_mode;
+      case 'maghrib':
+        return Icons.wb_twilight;
+      case 'isha':
+        return Icons.dark_mode;
+      default:
+        return Icons.schedule;
+    }
   }
 
   Widget _buildPrayerRow(
@@ -471,7 +495,12 @@ class HomePage extends StatelessWidget {
   }
 
   // ── Daily Inspiration ──────────────────────────────────────────────────────
-  Widget _buildDailyInspiration(BuildContext context, Color goldColor) {
+  Widget _buildDailyInspiration(
+    BuildContext context,
+    AppController controller,
+    QuranService quranService,
+    Color goldColor,
+  ) {
     final theme = Theme.of(context);
     return Column(
       children: [
@@ -504,82 +533,161 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 12.h),
-                Text(
-                  'verse_text'.tr,
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    color: Colors.white,
-                    fontStyle: FontStyle.italic,
-                    fontSize: 20.sp,
-                    height: 1.5,
-                  ),
-                ),
-                SizedBox(height: 12.h),
-                Text(
-                  '— Surah Ash-Sharh 94:5',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: goldColor.withValues(alpha: 0.6),
-                    fontStyle: FontStyle.italic,
-                    fontSize: 12.sp,
-                  ),
-                ),
+                Obx(() {
+                  controller.currentDayKey.value;
+                  final ayah = quranService.getAyahOfDay(
+                    DateTime.now(),
+                    arabicReference: controller.currentLanguage.value == 'ar',
+                  );
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        ayah.verse.text,
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          color: Colors.white,
+                          fontStyle: FontStyle.italic,
+                          fontSize: 20.sp,
+                          height: 1.5,
+                        ),
+                      ),
+                      SizedBox(height: 12.h),
+                      Text(
+                        '— ${ayah.reference}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: goldColor.withValues(alpha: 0.6),
+                          fontStyle: FontStyle.italic,
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                    ],
+                  );
+                }),
               ],
             ),
           ),
         ),
         SizedBox(height: 16.h),
-        Container(
-          height: 160.h,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24.r),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                theme.colorScheme.primaryContainer,
-                theme.colorScheme.primary,
-                Colors.black,
-              ],
-            ),
-          ),
+        InkWell(
+          onTap: controller.showCurrentDhikr,
+          borderRadius: BorderRadius.circular(24.r),
           child: Container(
+            width: double.infinity,
+            constraints: BoxConstraints(minHeight: 172.h),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24.r),
               gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
                 colors: [
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: 0.8),
+                  theme.colorScheme.primaryContainer,
+                  theme.colorScheme.primary,
+                  Colors.black,
                 ],
               ),
             ),
             padding: EdgeInsets.all(20.r),
-            child: Align(
-              alignment: Alignment.bottomLeft,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+            child: Obx(() {
+              final dhikr = controller.currentDailyDhikr;
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.self_improvement,
+                        color: goldColor,
+                        size: 20.r,
+                      ),
+                      SizedBox(width: 8.w),
+                      Expanded(
+                        child: Text(
+                          'daily_dhikr'.tr,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        Icons.open_in_new,
+                        color: Colors.white70,
+                        size: 18.r,
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12.h),
                   Text(
-                    'daily_dhikr'.tr,
+                    dhikr.text,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.start,
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 16.sp,
+                      fontSize: 20.sp,
+                      height: 1.45,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  SizedBox(height: 8.h),
                   Text(
-                    'dhikr_goal'.tr,
+                    dhikr.reference,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 12.sp,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
+                  SizedBox(height: 14.h),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4.r),
+                    child: LinearProgressIndicator(
+                      value: controller.dhikrProgressValue,
+                      minHeight: 6.h,
+                      backgroundColor: Colors.white.withValues(alpha: 0.16),
+                      valueColor: AlwaysStoppedAnimation<Color>(goldColor),
+                    ),
+                  ),
+                  SizedBox(height: 10.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          controller.dhikrProgressLabel,
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      FilledButton.icon(
+                        onPressed:
+                            controller.dhikrCompletedCount.value >=
+                                controller.dhikrDailyTarget.value
+                            ? null
+                            : controller.completeCurrentDhikr,
+                        icon: const Icon(Icons.check_circle_outline),
+                        label: Text('dhikr_done'.tr),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: goldColor,
+                          foregroundColor: Colors.black,
+                          disabledBackgroundColor: Colors.white.withValues(
+                            alpha: 0.18,
+                          ),
+                          disabledForegroundColor: Colors.white54,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
-              ),
-            ),
+              );
+            }),
           ),
         ),
       ],

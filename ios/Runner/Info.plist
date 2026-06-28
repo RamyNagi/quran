@@ -49,5 +49,9 @@
 	<string>Hayah uses your location to calculate accurate prayer times and Qibla direction.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Hayah can use your location to keep prayer reminders accurate.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Hayah uses the microphone to listen during Quran memorization practice.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Hayah uses speech recognition to compare your recitation with the selected Quran verses.</string>
 </dict>
 </plist>

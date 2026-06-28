@@ -53,6 +53,13 @@ class AppBottomNav extends StatelessWidget {
                 onTap: () => controller.navigateToPage(2),
               ),
               _NavItem(
+                icon: Icons.local_library,
+                label: 'sunnah'.tr,
+                active: currentIndex == 3,
+                goldColor: goldColor,
+                onTap: () => controller.navigateToPage(3),
+              ),
+              _NavItem(
                 icon: Icons.person,
                 label: 'profile'.tr,
                 active: currentIndex == 5,

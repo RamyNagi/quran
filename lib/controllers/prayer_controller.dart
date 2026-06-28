@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import 'app_controller.dart';
 import '../models/prayer_day.dart';
 import '../services/notification_service.dart';
 import '../services/prayer_service.dart';
@@ -42,6 +43,9 @@ class PrayerController extends GetxController {
       prayerDay.value = day;
       try {
         await _notificationService.schedulePrayerDay(day);
+        if (Get.isRegistered<AppController>()) {
+          await Get.find<AppController>().rescheduleDhikrReminders();
+        }
       } catch (_) {
         errorMessage.value = 'notification_schedule_failed'.tr;
       }
@@ -61,6 +65,9 @@ class PrayerController extends GetxController {
     await _notificationService.setPrayerEnabled(prayerKey, enabled);
     final day = prayerDay.value;
     if (day != null) await _notificationService.schedulePrayerDay(day);
+    if (Get.isRegistered<AppController>()) {
+      await Get.find<AppController>().rescheduleDhikrReminders();
+    }
     prayerDay.refresh();
   }
 
@@ -72,6 +79,24 @@ class PrayerController extends GetxController {
     final hours = duration.inHours;
     final minutes = duration.inMinutes.remainder(60);
     return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
+  }
+
+  double nextPrayerProgress() {
+    final day = prayerDay.value;
+    if (day == null) return 0;
+    final nextIndex = day.prayers.indexWhere(
+      (prayer) => prayer.key == day.nextPrayerKey,
+    );
+    if (nextIndex == -1) return 0;
+
+    final previousPrayerTime = nextIndex == 0
+        ? DateTime(day.date.year, day.date.month, day.date.day)
+        : day.prayers[nextIndex - 1].time;
+    final total = day.nextPrayerTime.difference(previousPrayerTime).inSeconds;
+    if (total <= 0) return 0;
+
+    final elapsed = DateTime.now().difference(previousPrayerTime).inSeconds;
+    return (elapsed / total).clamp(0.0, 1.0);
   }
 
   void _startTicker() {

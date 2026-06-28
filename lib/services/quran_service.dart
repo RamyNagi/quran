@@ -1,9 +1,29 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:quran/quran.dart' as quran;
 
 import 'storage_service.dart';
+
+class TafsirEdition {
+  const TafsirEdition({required this.key, required this.name});
+
+  final String key;
+  final String name;
+}
+
+class QuranReciterOption {
+  const QuranReciterOption({
+    required this.key,
+    required this.name,
+    required this.reciter,
+  });
+
+  final String key;
+  final String name;
+  final quran.Reciter reciter;
+}
 
 class SurahSummary {
   const SurahSummary({
@@ -45,19 +65,168 @@ class QuranVerse {
   String get id => '$surah:$verse';
 }
 
+class DailyAyah {
+  const DailyAyah({required this.verse, required this.reference});
+
+  final QuranVerse verse;
+  final String reference;
+}
+
 class QuranService {
   QuranService(this._storage);
 
   final StorageService _storage;
+  final Map<String, QuranVerse> _verseCache = {};
+  final Map<int, List<QuranVerse>> _pageCache = {};
+  List<SurahSummary> _surahCache = const [];
+  bool _isPreloaded = false;
+  bool _isPreloading = false;
+  Future<void>? _preloadFuture;
 
   static const _lastSurahKey = 'quran_last_surah';
   static const _lastVerseKey = 'quran_last_verse';
+  static const _readingMarkSurahKey = 'quran_reading_mark_surah';
+  static const _readingMarkVerseKey = 'quran_reading_mark_verse';
   static const _favoritesKey = 'quran_favorites';
   static const _bookmarksKey = 'quran_bookmarks';
   static const _fontScaleKey = 'quran_font_scale';
+  static const _selectedTafsirKey = 'quran_selected_tafsir';
+  static const _selectedReciterKey = 'quran_selected_reciter';
   static const _tafsirPrefix = 'tafsir_';
 
+  static const List<TafsirEdition> tafsirEditions = [
+    TafsirEdition(key: 'ar.muyassar', name: 'التفسير الميسر'),
+    TafsirEdition(key: 'ar.jalalayn', name: 'تفسير الجلالين'),
+    TafsirEdition(key: 'en.asad', name: 'Muhammad Asad'),
+  ];
+
+  static const List<QuranReciterOption> reciters = [
+    QuranReciterOption(
+      key: 'ar.alafasy',
+      name: 'مشاري راشد العفاسي',
+      reciter: quran.Reciter.arAlafasy,
+    ),
+    QuranReciterOption(
+      key: 'ar.husary',
+      name: 'محمود خليل الحصري',
+      reciter: quran.Reciter.arHusary,
+    ),
+    QuranReciterOption(
+      key: 'ar.ahmedajamy',
+      name: 'أحمد بن علي العجمي',
+      reciter: quran.Reciter.arAhmedAjamy,
+    ),
+    QuranReciterOption(
+      key: 'ar.hudhaify',
+      name: 'علي بن عبد الرحمن الحذيفي',
+      reciter: quran.Reciter.arHudhaify,
+    ),
+    QuranReciterOption(
+      key: 'ar.mahermuaiqly',
+      name: 'ماهر المعيقلي',
+      reciter: quran.Reciter.arMaherMuaiqly,
+    ),
+    QuranReciterOption(
+      key: 'ar.muhammadayyoub',
+      name: 'محمد أيوب',
+      reciter: quran.Reciter.arMuhammadAyyoub,
+    ),
+    QuranReciterOption(
+      key: 'ar.muhammadjibreel',
+      name: 'محمد جبريل',
+      reciter: quran.Reciter.arMuhammadJibreel,
+    ),
+    QuranReciterOption(
+      key: 'ar.minshawi',
+      name: 'محمد صديق المنشاوي',
+      reciter: quran.Reciter.arMinshawi,
+    ),
+    QuranReciterOption(
+      key: 'ar.shaatree',
+      name: 'أبو بكر الشاطري',
+      reciter: quran.Reciter.arShaatree,
+    ),
+  ];
+
+  void preloadQuran({bool force = false}) {
+    if (_isPreloading && !force) return;
+    if (_isPreloaded && !force) return;
+
+    _verseCache.clear();
+    _pageCache.clear();
+    _surahCache = _buildSurahs();
+    final reciter = getSelectedReciter().reciter;
+
+    for (var page = 1; page <= quran.totalPagesCount; page++) {
+      final pageVerses = <QuranVerse>[];
+      final pageData = quran.getPageData(page);
+      for (final entry in pageData) {
+        final surah = int.parse(entry['surah'].toString());
+        final start = int.parse(entry['start'].toString());
+        final end = int.parse(entry['end'].toString());
+        for (var verse = start; verse <= end; verse++) {
+          final quranVerse = _buildVerse(
+            surah,
+            verse,
+            page: page,
+            reciter: reciter,
+          );
+          _verseCache[quranVerse.id] = quranVerse;
+          pageVerses.add(quranVerse);
+        }
+      }
+      _pageCache[page] = pageVerses;
+    }
+
+    _isPreloaded = true;
+    _isPreloading = false;
+  }
+
+  Future<void> preloadQuranAsync({bool force = false}) {
+    if (_isPreloading && !force) {
+      return _preloadFuture ?? Future<void>.value();
+    }
+    if (_isPreloaded && !force) return Future<void>.value();
+
+    _preloadFuture = _preloadQuranAsync();
+    return _preloadFuture!;
+  }
+
+  Future<void> _preloadQuranAsync() async {
+    _isPreloading = true;
+    _isPreloaded = false;
+    try {
+      _verseCache.clear();
+      _pageCache.clear();
+      _surahCache = _buildSurahs();
+      final reciter = getSelectedReciter().reciter;
+
+      for (var page = 1; page <= quran.totalPagesCount; page++) {
+        _pageCache[page] = _buildPageVerses(page, reciter: reciter);
+        for (final verse in _pageCache[page]!) {
+          _verseCache[verse.id] = verse;
+        }
+
+        if (page % 12 == 0) {
+          await Future<void>.delayed(Duration.zero);
+        }
+      }
+
+      _isPreloaded = true;
+    } finally {
+      _isPreloading = false;
+      _preloadFuture = null;
+    }
+  }
+
   List<SurahSummary> getSurahs() {
+    if (_surahCache.isEmpty) {
+      _surahCache = _buildSurahs();
+    }
+    return List.unmodifiable(_surahCache);
+  }
+
+  List<SurahSummary> _buildSurahs() {
     return List.generate(quran.totalSurahCount, (index) {
       final number = index + 1;
       return SurahSummary(
@@ -75,38 +244,178 @@ class QuranService {
     return List.generate(count, (index) => getVerse(surah, index + 1));
   }
 
+  List<QuranVerse> getSurahVersesFrom(int surah, int startVerse) {
+    final safeSurah = surah.clamp(1, quran.totalSurahCount).toInt();
+    final verseCount = quran.getVerseCount(safeSurah);
+    final safeStart = startVerse.clamp(1, verseCount).toInt();
+
+    return List.generate(
+      verseCount - safeStart + 1,
+      (index) => getVerse(safeSurah, safeStart + index),
+    );
+  }
+
+  List<QuranVerse> getSurahVersesRange(
+    int surah,
+    int startVerse,
+    int endVerse,
+  ) {
+    final safeSurah = surah.clamp(1, quran.totalSurahCount).toInt();
+    final verseCount = quran.getVerseCount(safeSurah);
+    final safeStart = startVerse.clamp(1, verseCount).toInt();
+    final safeEnd = endVerse.clamp(safeStart, verseCount).toInt();
+
+    return List.generate(
+      safeEnd - safeStart + 1,
+      (index) => getVerse(safeSurah, safeStart + index),
+    );
+  }
+
   QuranVerse getVerse(int surah, int verse) {
+    if (_isPreloaded) {
+      final cached = _verseCache['$surah:$verse'];
+      if (cached != null) return cached;
+    }
+    return _buildVerse(surah, verse);
+  }
+
+  DailyAyah getAyahOfDay(DateTime date, {required bool arabicReference}) {
+    final daysSinceEpoch = DateTime(
+      date.year,
+      date.month,
+      date.day,
+    ).difference(DateTime(2024)).inDays;
+    final globalVerseIndex =
+        ((daysSinceEpoch * 37) % quran.totalVerseCount) + 1;
+    var cursor = globalVerseIndex;
+
+    for (var surah = 1; surah <= quran.totalSurahCount; surah++) {
+      final verseCount = quran.getVerseCount(surah);
+      if (cursor <= verseCount) {
+        final verse = getVerse(surah, cursor);
+        final surahName = arabicReference
+            ? quran.getSurahNameArabic(surah)
+            : quran.getSurahNameEnglish(surah);
+        return DailyAyah(
+          verse: verse,
+          reference: '$surahName - $surah:$cursor',
+        );
+      }
+      cursor -= verseCount;
+    }
+
+    final verse = getVerse(1, 1);
+    return DailyAyah(
+      verse: verse,
+      reference: arabicReference ? 'الفاتحة - 1:1' : 'Al-Faatiha - 1:1',
+    );
+  }
+
+  QuranVerse _buildVerse(
+    int surah,
+    int verse, {
+    int? page,
+    quran.Reciter? reciter,
+  }) {
+    final selectedReciter = reciter ?? getSelectedReciter().reciter;
     return QuranVerse(
       surah: surah,
       verse: verse,
       text: quran.getVerse(surah, verse, verseEndSymbol: true),
       translation: quran.getVerseTranslation(surah, verse),
-      audioUrl: quran.getAudioURLByVerse(surah, verse),
-      page: quran.getPageNumber(surah, verse),
+      audioUrl: quran.getAudioURLByVerse(
+        surah,
+        verse,
+        reciter: selectedReciter,
+      ),
+      page: page ?? quran.getPageNumber(surah, verse),
       juz: quran.getJuzNumber(surah, verse),
       isSajdah: quran.isSajdahVerse(surah, verse),
     );
   }
 
+  List<QuranVerse> getPageVerses(int page) {
+    final cached = _pageCache[page];
+    if (cached != null) return List.unmodifiable(cached);
+
+    final verses = _buildPageVerses(page);
+    _pageCache[page] = verses;
+    for (final verse in verses) {
+      _verseCache[verse.id] = verse;
+    }
+    return List.unmodifiable(verses);
+  }
+
+  List<QuranVerse> _buildPageVerses(int page, {quran.Reciter? reciter}) {
+    final pageData = quran.getPageData(page);
+    final verses = <QuranVerse>[];
+    for (final entry in pageData) {
+      final surah = int.parse(entry['surah'].toString());
+      final start = int.parse(entry['start'].toString());
+      final end = int.parse(entry['end'].toString());
+      for (var verse = start; verse <= end; verse++) {
+        verses.add(_buildVerse(surah, verse, page: page, reciter: reciter));
+      }
+    }
+    return verses;
+  }
+
+  String getMushafPageImageUrl(int page) {
+    final safePage = page.clamp(1, quran.totalPagesCount).toInt();
+    return 'https://quran.ksu.edu.sa/png_big/$safePage.png';
+  }
+
   List<QuranVerse> search(String query) {
-    final trimmed = query.trim();
-    if (trimmed.isEmpty) return <QuranVerse>[];
-    final arabicResults = quran.searchWords([trimmed])['result'] as List;
-    final translationResults =
-        quran.searchWordsInTranslation([trimmed])['result'] as List;
-    final seen = <String>{};
+    if (!_isPreloaded && !_isPreloading) {
+      preloadQuran();
+    }
+    final normalizedQuery = _normalizeArabicSearch(query);
+    if (normalizedQuery.isEmpty) return <QuranVerse>[];
     final results = <QuranVerse>[];
 
-    for (final item in [...arabicResults, ...translationResults]) {
-      final surah = int.parse(item['surah'].toString());
-      final verse = int.parse(item['verse'].toString());
-      final id = '$surah:$verse';
-      if (seen.add(id)) {
-        results.add(getVerse(surah, verse));
+    for (final verse in _verseCache.values) {
+      final normalizedText = _normalizeArabicSearch(verse.text);
+      if (normalizedText.contains(normalizedQuery)) {
+        results.add(verse);
       }
-      if (results.length >= 80) break;
     }
     return results;
+  }
+
+  Future<List<QuranVerse>> searchAsync(String query) async {
+    if (!_isPreloaded) {
+      await preloadQuranAsync();
+    }
+
+    final normalizedQuery = _normalizeArabicSearch(query);
+    if (normalizedQuery.isEmpty) return <QuranVerse>[];
+
+    final results = <QuranVerse>[];
+    var index = 0;
+    for (final verse in _verseCache.values) {
+      final normalizedText = _normalizeArabicSearch(verse.text);
+      if (normalizedText.contains(normalizedQuery)) {
+        results.add(verse);
+      }
+
+      index++;
+      if (index % 350 == 0) {
+        await Future<void>.delayed(Duration.zero);
+      }
+    }
+    return results;
+  }
+
+  String _normalizeArabicSearch(String value) {
+    return value
+        .trim()
+        .replaceAll(RegExp(r'[\u064B-\u065F\u0670\u06D6-\u06ED]'), '')
+        .replaceAll(RegExp('[\u0625\u0623\u0622\u0671]'), '\u0627')
+        .replaceAll('\u0649', '\u064A')
+        .replaceAll('\u0624', '\u0648')
+        .replaceAll('\u0626', '\u064A')
+        .replaceAll('\u0629', '\u0647')
+        .replaceAll(RegExp(r'\s+'), ' ');
   }
 
   QuranVerse getLastRead() {
@@ -121,12 +430,70 @@ class QuranService {
     await _storage.write(_lastVerseKey, verse);
   }
 
+  Future<void> saveLastReadPage(int page) async {
+    final verses = getPageVerses(page);
+    if (verses.isEmpty) return;
+    await saveLastRead(verses.first.surah, verses.first.verse);
+  }
+
+  QuranVerse? getReadingMark() {
+    if (!_storage.contains(_readingMarkSurahKey) ||
+        !_storage.contains(_readingMarkVerseKey)) {
+      return null;
+    }
+    return getVerse(
+      _storage.read<int>(_readingMarkSurahKey, 1),
+      _storage.read<int>(_readingMarkVerseKey, 1),
+    );
+  }
+
+  Future<void> saveReadingMark(int surah, int verse) async {
+    final safeSurah = surah.clamp(1, quran.totalSurahCount).toInt();
+    final safeVerse = verse.clamp(1, quran.getVerseCount(safeSurah)).toInt();
+    await _storage.write(_readingMarkSurahKey, safeSurah);
+    await _storage.write(_readingMarkVerseKey, safeVerse);
+  }
+
+  Future<void> saveReadingMarkPage(int page) async {
+    final verses = getPageVerses(page);
+    if (verses.isEmpty) return;
+    await saveReadingMark(verses.first.surah, verses.first.verse);
+  }
+
   double getFontScale() => _storage.read<double>(_fontScaleKey, 1.0);
 
   Future<void> setFontScale(double value) =>
       _storage.write(_fontScaleKey, value.clamp(0.8, 1.6).toDouble());
 
-  bool isFavorite(String id) => _storage.readStringList(_favoritesKey).contains(id);
+  TafsirEdition getSelectedTafsir() {
+    final key = _storage.read<String>(
+      _selectedTafsirKey,
+      tafsirEditions.first.key,
+    );
+    return tafsirEditions.firstWhere(
+      (edition) => edition.key == key,
+      orElse: () => tafsirEditions.first,
+    );
+  }
+
+  Future<void> setSelectedTafsir(String key) =>
+      _storage.write(_selectedTafsirKey, key);
+
+  QuranReciterOption getSelectedReciter() {
+    final key = _storage.read<String>(_selectedReciterKey, reciters.first.key);
+    return reciters.firstWhere(
+      (reciter) => reciter.key == key,
+      orElse: () => reciters.first,
+    );
+  }
+
+  Future<void> setSelectedReciter(String key) async {
+    await _storage.write(_selectedReciterKey, key);
+    await preloadQuranAsync(force: true);
+  }
+
+  bool isFavorite(String id) =>
+      _storage.readStringList(_favoritesKey).contains(id);
 
   bool isBookmarked(String id) =>
       _storage.readStringList(_bookmarksKey).contains(id);
@@ -142,11 +509,22 @@ class QuranService {
   List<String> getBookmarks() => _storage.readStringList(_bookmarksKey);
 
   Future<String> getTafsir(int surah, int verse) async {
-    final key = '$_tafsirPrefix$surah:$verse';
+    final edition = getSelectedTafsir();
+    return getTafsirForEdition(surah, verse, edition.key);
+  }
+
+  Future<String> getTafsirForEdition(
+    int surah,
+    int verse,
+    String editionKey,
+  ) async {
+    final key = '$_tafsirPrefix$editionKey:$surah:$verse';
     final cached = _storage.read<String>(key, '');
     if (cached.isNotEmpty) return cached;
 
-    final url = Uri.parse('https://api.alquran.cloud/v1/ayah/$surah:$verse/en.asad');
+    final url = Uri.parse(
+      'https://api.alquran.cloud/v1/ayah/$surah:$verse/$editionKey',
+    );
     final response = await http.get(url).timeout(const Duration(seconds: 10));
     if (response.statusCode != 200) {
       throw Exception('Tafsir service unavailable');

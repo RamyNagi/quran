@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:hayah/controllers/app_controller.dart';
@@ -33,10 +34,15 @@ void main() {
     Get.put<AppController>(controller);
 
     await tester.pumpWidget(
-      GetMaterialApp(
-        translations: AppTranslations(),
-        locale: const Locale('en'),
-        home: const Scaffold(bottomNavigationBar: AppBottomNav(currentIndex: 0)),
+      ScreenUtilInit(
+        designSize: const Size(390, 844),
+        builder: (_, _) => GetMaterialApp(
+          translations: AppTranslations(),
+          locale: const Locale('en'),
+          home: const Scaffold(
+            bottomNavigationBar: AppBottomNav(currentIndex: 0),
+          ),
+        ),
       ),
     );
 
