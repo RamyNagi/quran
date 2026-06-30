@@ -151,6 +151,12 @@ class AppTranslations extends Translations {
           'Tafsir is unavailable. Check the connection or try later.',
       'audio_unavailable':
           'Audio is unavailable. Check the connection or try later.',
+      'quran_audio': 'Recitation',
+      'quran_memorize': 'Memorize',
+      'quran_save_mark': 'Save Mark',
+      'quran_go_to_mark': 'Go to Mark',
+      'quran_read_only': 'Reading',
+      'quran_listen_read': 'Listen & Read',
     },
     'ar': {
       'title': 'حياة',
@@ -291,6 +297,12 @@ class AppTranslations extends Translations {
       'tafsir': 'التفسير',
       'tafsir_unavailable': 'التفسير غير متاح. تحقق من الاتصال أو حاول لاحقًا.',
       'audio_unavailable': 'الصوت غير متاح. تحقق من الاتصال أو حاول لاحقًا.',
+      'quran_audio': 'التلاوة',
+      'quran_memorize': 'الحفظ',
+      'quran_save_mark': 'حفظ علامة',
+      'quran_go_to_mark': 'الذهاب للعلامة',
+      'quran_read_only': 'قراءة',
+      'quran_listen_read': 'استماع وقراءة',
     },
   };
 }
