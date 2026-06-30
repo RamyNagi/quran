@@ -71,12 +71,12 @@ class ProfilePage extends StatelessWidget {
               Obx(
                 () => _SettingsCard(
                   icon: Icons.badge_outlined,
-                  title: 'الاسم',
+                  title: 'name_label'.tr,
                   subtitle: controller.userName.value,
                   goldColor: goldColor,
                   trailing: TextButton(
                     onPressed: () => _showEditNameSheet(context, controller),
-                    child: Text('تعديل', style: TextStyle(color: goldColor)),
+                    child: Text('edit'.tr, style: TextStyle(color: goldColor)),
                   ),
                 ),
               ),

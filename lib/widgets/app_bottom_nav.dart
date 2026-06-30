@@ -17,60 +17,72 @@ class AppBottomNav extends StatelessWidget {
         ? const Color(0xFFD4AF37)
         : const Color(0xFFC5A059);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor.withValues(alpha: 0.96),
-        border: Border(
-          top: BorderSide(color: goldColor.withValues(alpha: 0.14)),
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 8.h),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _NavItem(
-                icon: Icons.home,
-                label: 'home'.tr,
-                active: currentIndex == 0,
-                goldColor: goldColor,
-                onTap: () => controller.navigateToPage(0),
+    return Obx(() {
+      final visible = controller.isNavBarVisible.value;
+      return AnimatedSlide(
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeInOut,
+        offset: visible ? Offset.zero : const Offset(0, 1),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 220),
+          opacity: visible ? 1.0 : 0.0,
+          child: Container(
+            decoration: BoxDecoration(
+              color: theme.scaffoldBackgroundColor.withValues(alpha: 0.96),
+              border: Border(
+                top: BorderSide(color: goldColor.withValues(alpha: 0.14)),
               ),
-              _NavItem(
-                icon: Icons.schedule,
-                label: 'salat'.tr,
-                active: currentIndex == 1,
-                goldColor: goldColor,
-                onTap: () => controller.navigateToPage(1),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.h),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _NavItem(
+                      icon: Icons.home,
+                      label: 'home'.tr,
+                      active: currentIndex == 0,
+                      goldColor: goldColor,
+                      onTap: () => controller.navigateToPage(0),
+                    ),
+                    _NavItem(
+                      icon: Icons.schedule,
+                      label: 'salat'.tr,
+                      active: currentIndex == 1,
+                      goldColor: goldColor,
+                      onTap: () => controller.navigateToPage(1),
+                    ),
+                    _NavItem(
+                      icon: Icons.menu_book,
+                      label: 'quran'.tr,
+                      active: currentIndex == 2,
+                      goldColor: goldColor,
+                      onTap: () => controller.navigateToPage(2),
+                    ),
+                    _NavItem(
+                      icon: Icons.local_library,
+                      label: 'sunnah'.tr,
+                      active: currentIndex == 3,
+                      goldColor: goldColor,
+                      onTap: () => controller.navigateToPage(3),
+                    ),
+                    _NavItem(
+                      icon: Icons.person,
+                      label: 'profile'.tr,
+                      active: currentIndex == 5,
+                      goldColor: goldColor,
+                      onTap: () => controller.navigateToPage(5),
+                    ),
+                  ],
+                ),
               ),
-              _NavItem(
-                icon: Icons.menu_book,
-                label: 'quran'.tr,
-                active: currentIndex == 2,
-                goldColor: goldColor,
-                onTap: () => controller.navigateToPage(2),
-              ),
-              _NavItem(
-                icon: Icons.local_library,
-                label: 'sunnah'.tr,
-                active: currentIndex == 3,
-                goldColor: goldColor,
-                onTap: () => controller.navigateToPage(3),
-              ),
-              _NavItem(
-                icon: Icons.person,
-                label: 'profile'.tr,
-                active: currentIndex == 5,
-                goldColor: goldColor,
-                onTap: () => controller.navigateToPage(5),
-              ),
-            ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    });
   }
 }
 
@@ -91,6 +103,14 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    // اللون النشط أبيض بالكامل للداكن وأسود للفاتح، وغير النشط أبيض/أسود بشفافية 50%
+    final Color itemColor = active
+        ? (isDark ? Colors.white : Colors.black)
+        : (isDark ? Colors.white.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.5));
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12.r),
@@ -104,7 +124,7 @@ class _NavItem extends StatelessWidget {
               Icon(
                 icon,
                 size: 22.r,
-                color: active ? goldColor : Colors.grey.withValues(alpha: 0.62),
+                color: itemColor,
               ),
               SizedBox(height: 4.h),
               Text(
@@ -114,9 +134,7 @@ class _NavItem extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 9.sp,
                   fontWeight: FontWeight.bold,
-                  color: active
-                      ? goldColor
-                      : Colors.grey.withValues(alpha: 0.62),
+                  color: itemColor,
                 ),
               ),
               SizedBox(height: 4.h),

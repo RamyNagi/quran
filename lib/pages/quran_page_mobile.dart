@@ -1,6 +1,5 @@
 // ignore_for_file: deprecated_member_use
 
-import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
@@ -12,6 +11,8 @@ import 'package:quran_library/quran_library.dart';
 import '../controllers/app_controller.dart';
 import '../services/audio_service.dart';
 import '../services/quran_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_bottom_nav.dart';
 import 'quran_memorization_page.dart';
 
 class QuranPage extends StatefulWidget {
@@ -25,122 +26,183 @@ class QuranPage extends StatefulWidget {
 
 class _QuranPageState extends State<QuranPage> {
   late final QuranService _quranService;
-  Timer? _toolbarTimer;
-  bool _isToolbarVisible = false;
+  late final AppController _appController;
+  // البارات ظاهرة افتراضياً عند فتح الصفحة
+  bool _isToolbarVisible = true;
 
   @override
   void initState() {
     super.initState();
     _quranService = Get.find<QuranService>();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _appController = Get.find<AppController>();
+    // إظهار الـ Bottom Nav Bar عند دخول صفحة القرآن
+    _appController.setNavBarVisible(true);
+
+    // تعيين خط حفص العثماني المدمج (0) فوراً بشكل متزامن قبل بدء البناء لمنع الانهيار
+    try {
+      final quranCtrl = QuranCtrl.instance;
+      quranCtrl.state.fontsSelected.value = 0;
+    } catch (e) {
+      log('Error forcing default font in initState: $e');
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final lastRead = _quranService.getLastRead();
       QuranLibrary().jumpToPage(lastRead.page);
+
+      // التأكيد على حفظ الإعداد الافتراضي
+      try {
+        final quranCtrl = QuranCtrl.instance;
+        if (quranCtrl.state.fontsSelected.value != 0) {
+          await quranCtrl.switchFontType(fontIndex: 0);
+        }
+      } catch (e) {
+        log('Error forcing default Hafs font: $e');
+      }
     });
   }
 
   @override
   void dispose() {
-    _toolbarTimer?.cancel();
+    // إظهار الـ Bottom Nav Bar عند الخروج من صفحة القرآن
+    _appController.setNavBarVisible(true);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final appController = Get.find<AppController>();
+    return Obx(() {
+      final isNight = _appController.isNightMode.value;
+      
+      // جلب الألوان من ملف app_theme.dart حسب الوضع الحالي
+      final Color bgColor = isNight ? AppTheme.backgroundNight : AppTheme.backgroundLight;
+      final Color textColor = isNight ? AppTheme.textNight : AppTheme.textLight;
+      final Color goldColor = isNight ? AppTheme.goldNight : AppTheme.goldLight;
+      final Color surfaceColor = isNight ? AppTheme.surfaceNight : AppTheme.surfaceLight;
 
-    return Theme(
-      data: ThemeData(
-        useMaterial3: false,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: Colors.black,
-        colorScheme: const ColorScheme.dark(
-          primary: QuranPage._goldColor,
-          secondary: QuranPage._goldColor,
-          surface: Colors.black,
-          onPrimary: Colors.black,
-          onSecondary: Colors.black,
-          onSurface: Colors.white,
-        ),
-      ),
-      child: PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (_, _) => appController.navigateToPage(0),
-        child: Stack(
-          children: [
-            QuranLibraryScreen(
-              isDark: true,
-              languageCode: Get.locale?.languageCode ?? 'ar',
-              backgroundColor: Colors.black,
-              textColor: Colors.white,
-              ayahIconColor: QuranPage._goldColor,
-              ayahSelectedBackgroundColor: QuranPage._goldColor.withValues(
-                alpha: 0.22,
-              ),
-              ayahSelectedFontColor: Colors.white,
-              bookmarksColor: QuranPage._goldColor,
-              withPageView: true,
-              optimizeScrolling: false,
-              useDefaultAppBar: true,
-              showAyahBookmarkedIcon: true,
-              onPageChanged: (pageIndex) =>
-                  _quranService.saveLastReadPage(pageIndex + 1),
-              onPagePress: _toggleToolbar,
-              onAyahLongPress: (_, ayah) =>
-                  _showAyahMoreOptions(context: context, ayah: ayah),
-              anotherMenuChild: const Icon(
-                Icons.more_horiz,
-                color: Colors.grey,
-              ),
-              anotherMenuChildOnTap: (ayah) =>
-                  _showAyahMoreOptions(context: context, ayah: ayah),
-            ),
-            PositionedDirectional(
-              start: 12,
-              end: 12,
-              bottom: MediaQuery.paddingOf(context).bottom + 8,
-              child: AnimatedOpacity(
-                opacity: _isToolbarVisible ? 1 : 0,
-                duration: const Duration(milliseconds: 180),
-                child: IgnorePointer(
-                  ignoring: !_isToolbarVisible,
-                  child: _QuranFloatingToolbar(
-                    onHome: () => appController.navigateToPage(0),
-                    onMemorize: () => _showQuranMemorizationSheet(context),
-                    onAudio: () => _showQuranAudioSheet(context),
-                    onSaveMark: () => _saveCurrentReadingMark(context),
-                    onOpenMark: () => _openReadingMarkSheet(context),
-                  ),
+      return Theme(
+        data: ThemeData(
+          useMaterial3: false,
+          brightness: isNight ? Brightness.dark : Brightness.light,
+          scaffoldBackgroundColor: bgColor,
+          colorScheme: isNight
+              ? const ColorScheme.dark(
+                  primary: AppTheme.goldNight,
+                  secondary: AppTheme.goldNight,
+                  surface: AppTheme.surfaceNight,
+                  onPrimary: Colors.black,
+                  onSecondary: Colors.black,
+                  onSurface: AppTheme.textNight,
+                )
+              : const ColorScheme.light(
+                  primary: AppTheme.goldLight,
+                  secondary: AppTheme.goldLight,
+                  surface: AppTheme.surfaceLight,
+                  onPrimary: Colors.white,
+                  onSecondary: Colors.white,
+                  onSurface: AppTheme.textLight,
                 ),
+        ),
+        child: PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (_, _) {
+            // لو البارات مخفية → أظهرها بدل ما تخرج
+            if (!_isToolbarVisible) {
+              _showBars();
+            } else {
+              _appController.navigateToPage(0);
+            }
+          },
+          child: Scaffold(
+            backgroundColor: bgColor,
+            body: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onDoubleTap: _toggleBars,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: MediaQuery(
+                      data: MediaQuery.of(context).copyWith(
+                        textScaler: const TextScaler.linear(1.28),
+                      ),
+                      child: QuranLibraryScreen(
+                        isDark: isNight,
+                        languageCode: Get.locale?.languageCode ?? 'ar',
+                        backgroundColor: bgColor,
+                        textColor: textColor,
+                        ayahIconColor: goldColor,
+                        ayahSelectedBackgroundColor: goldColor.withValues(
+                          alpha: 0.22,
+                        ),
+                        ayahSelectedFontColor: textColor,
+                        bookmarksColor: goldColor,
+                        withPageView: true,
+                        optimizeScrolling: false,
+                        // AppBar يتحكم فيه نفس الـ state بتاع الـ toolbar
+                        useDefaultAppBar: _isToolbarVisible,
+                        showAyahBookmarkedIcon: true,
+                        downloadFontsDialogStyle: DownloadFontsDialogStyle(
+                          iconWidget: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {}, // يمتص النقرات تماماً لمنع فتح الحوار
+                            child: const SizedBox(
+                              width: 100,
+                              height: 100,
+                            ),
+                          ),
+                          linearProgressColor: Colors.transparent,
+                          linearProgressBackgroundColor: Colors.transparent,
+                        ),
+                        onPageChanged: (pageIndex) =>
+                            _quranService.saveLastReadPage(pageIndex + 1),
+                        onPagePress: () {}, // نقرة واحدة لا تخفي/تظهر البارات
+                        onAyahLongPress: (_, ayah) =>
+                            _showAyahMoreOptions(context: context, ayah: ayah),
+                        anotherMenuChild: const Icon(
+                          Icons.more_horiz,
+                          color: Colors.grey,
+                        ),
+                        anotherMenuChildOnTap: (ayah) =>
+                            _showAyahMoreOptions(context: context, ayah: ayah),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: const AppBottomNav(currentIndex: 2),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 
-  void _toggleToolbar() {
+  // ضغطة واحدة: تبديل إظهار/إخفاء كل البارات
+  void _toggleBars() {
     if (_isToolbarVisible) {
-      _hideToolbar();
+      _hideBars();
     } else {
-      _showToolbar();
+      _showBars();
     }
   }
 
-  void _showToolbar() {
-    _toolbarTimer?.cancel();
+  void _showBars() {
     if (mounted) {
       setState(() => _isToolbarVisible = true);
     }
-    _toolbarTimer = Timer(const Duration(seconds: 5), _hideToolbar);
+    _appController.setNavBarVisible(true);
   }
 
-  void _hideToolbar() {
-    _toolbarTimer?.cancel();
-    _toolbarTimer = null;
-    if (mounted && _isToolbarVisible) {
+  void _hideBars() {
+    if (mounted) {
       setState(() => _isToolbarVisible = false);
     }
+    _appController.setNavBarVisible(false);
   }
 
   Future<void> _saveCurrentReadingMark(BuildContext context) async {

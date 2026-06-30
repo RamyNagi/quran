@@ -101,6 +101,8 @@ class AppTranslations extends Translations {
       'digital_dhikr_desc':
           'Keep your heart moist with remembrance through a simple tasbih.',
       'open_tasbih': 'Open Tasbih',
+      'name_label': 'Name',
+      'edit': 'Edit',
       'privacy': 'Privacy',
       'terms': 'Terms',
       'contact': 'Contact us',
@@ -243,6 +245,8 @@ class AppTranslations extends Translations {
       'digital_dhikr': 'الذكر الرقمي',
       'digital_dhikr_desc': 'حافظ على رطوبة قلبك بالذكر عبر مسبحة بسيطة.',
       'open_tasbih': 'افتح المسبحة',
+      'name_label': 'الاسم',
+      'edit': 'تعديل',
       'privacy': 'الخصوصية',
       'terms': 'الشروط',
       'contact': 'اتصل بنا',

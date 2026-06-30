@@ -71,6 +71,9 @@ class AppController extends GetxController {
   final RxDouble prayerProgress = 0.75.obs; // 75% progress to Maghrib
   final RxString currentDayKey = ''.obs;
 
+  // إظهار/إخفاء الـ Bottom Navigation Bar
+  final RxBool isNavBarVisible = true.obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -153,6 +156,10 @@ class AppController extends GetxController {
     } else {
       changeLanguage('en');
     }
+  }
+
+  void setNavBarVisible(bool visible) {
+    isNavBarVisible.value = visible;
   }
 
   void toggleTheme() {
