@@ -25,6 +25,12 @@ import 'services/storage_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // تثبيت التطبيق في الوضع الرأسي فقط
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
   final storage = StorageService();
   await storage.init();
   await initQuranLibrary();
@@ -74,7 +80,7 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           translations: AppTranslations(),
           locale: Locale(controller.currentLanguage.value),
-          fallbackLocale: const Locale('en'),
+          fallbackLocale: const Locale('ar'),
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.nightTheme,
           themeMode: controller.isNightMode.value

@@ -74,7 +74,7 @@ class AppController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    currentLanguage = _storage.read<String>('language', 'en').obs;
+    currentLanguage = _storage.read<String>('language', 'ar').obs;
     isNightMode = _storage.read<bool>('night_mode', true).obs;
     userName = _storage.read<String>('user_name', '').obs;
     dhikrReminderEnabled = _storage
