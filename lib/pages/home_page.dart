@@ -6,6 +6,7 @@ import '../controllers/prayer_controller.dart';
 import '../services/quran_service.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/arabesque_painter.dart';
+import '../static/mysnakbar.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -116,12 +117,9 @@ class HomePage extends StatelessWidget {
           IconButton(
             icon: Icon(Icons.calendar_today, color: goldColor, size: 20.r),
             onPressed: () {
-              Get.snackbar(
-                'ramadan_date'.tr,
-                '12 Ramadan 1445 AH',
-                snackPosition: SnackPosition.BOTTOM,
-                backgroundColor: goldColor.withValues(alpha: 0.15),
-                colorText: theme.colorScheme.onSurface,
+              MySnackbar.showInfo(
+                title: 'ramadan_date'.tr,
+                message: '12 Ramadan 1445 AH',
               );
             },
           ),
@@ -736,12 +734,9 @@ class HomePage extends StatelessWidget {
       onTap:
           onTap ??
           () {
-            Get.snackbar(
-              title,
-              subtitle,
-              snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: goldColor.withValues(alpha: 0.15),
-              colorText: theme.colorScheme.onSurface,
+            MySnackbar.showInfo(
+              title: title,
+              message: subtitle,
             );
           },
       borderRadius: BorderRadius.circular(24.r),

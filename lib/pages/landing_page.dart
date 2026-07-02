@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../controllers/app_controller.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/arabesque_painter.dart';
+import '../static/mysnakbar.dart';
 
 class LandingPage extends StatelessWidget {
   const LandingPage({super.key});
@@ -478,12 +479,9 @@ class LandingPage extends StatelessWidget {
       onTap:
           onTap ??
           () {
-            Get.snackbar(
-              title,
-              subtitle,
-              snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: goldColor.withValues(alpha: 0.15),
-              colorText: theme.colorScheme.onSurface,
+            MySnackbar.showInfo(
+              title: title,
+              message: subtitle,
             );
           },
       borderRadius: BorderRadius.circular(16.r),

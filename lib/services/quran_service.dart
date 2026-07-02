@@ -17,12 +17,14 @@ class QuranReciterOption {
   const QuranReciterOption({
     required this.key,
     required this.name,
-    required this.reciter,
+    this.reciter,
+    this.everyAyahFolder,
   });
 
   final String key;
   final String name;
-  final quran.Reciter reciter;
+  final quran.Reciter? reciter;
+  final String? everyAyahFolder;
 }
 
 class SurahSummary {
@@ -146,6 +148,57 @@ class QuranService {
       name: 'أبو بكر الشاطري',
       reciter: quran.Reciter.arShaatree,
     ),
+    // القراء الجدد المضافين من EveryAyah
+    QuranReciterOption(
+      key: 'ar.sudais',
+      name: 'عبد الرحمن السديس',
+      everyAyahFolder: 'Abdurrahmaan_As-Sudais_192kbps',
+    ),
+    QuranReciterOption(
+      key: 'ar.shuraym',
+      name: 'سعود الشريم',
+      everyAyahFolder: 'Saood_ash-Shuraym_128kbps',
+    ),
+    QuranReciterOption(
+      key: 'ar.bukhatir',
+      name: 'صلاح بو خاطر',
+      everyAyahFolder: 'Salaah_AbdulRahman_Bukhatir_128kbps',
+    ),
+    QuranReciterOption(
+      key: 'ar.basitmurattal',
+      name: 'عبد الباسط عبد الصمد (مرتل)',
+      everyAyahFolder: 'Abdul_Basit_Murattal_192kbps',
+    ),
+    QuranReciterOption(
+      key: 'ar.basitmujawwad',
+      name: 'عبد الباسط عبد الصمد (مجود)',
+      everyAyahFolder: 'Abdul_Basit_Mujawwad_128kbps',
+    ),
+    QuranReciterOption(
+      key: 'ar.saadghamidi',
+      name: 'سعد الغامدي',
+      everyAyahFolder: 'Saad_Al_Ghamidi_128kbps',
+    ),
+    QuranReciterOption(
+      key: 'ar.yasseraddussari',
+      name: 'ياسر الدوسري',
+      everyAyahFolder: 'Yasser_Ad-Dussary_128kbps',
+    ),
+    QuranReciterOption(
+      key: 'ar.nasserqatami',
+      name: 'ناصر القطامي',
+      everyAyahFolder: 'Nasser_Alqatami_128kbps',
+    ),
+    QuranReciterOption(
+      key: 'ar.faresabbad',
+      name: 'فارس عباد',
+      everyAyahFolder: 'Fares_Abbad_64kbps',
+    ),
+    QuranReciterOption(
+      key: 'ar.hanirifai',
+      name: 'هاني الرفاعي',
+      everyAyahFolder: 'Hani_Rifai_192kbps',
+    ),
   ];
 
   void preloadQuran({bool force = false}) {
@@ -155,7 +208,7 @@ class QuranService {
     _verseCache.clear();
     _pageCache.clear();
     _surahCache = _buildSurahs();
-    final reciter = getSelectedReciter().reciter;
+    final reciterOption = getSelectedReciter();
 
     for (var page = 1; page <= quran.totalPagesCount; page++) {
       final pageVerses = <QuranVerse>[];
@@ -169,7 +222,7 @@ class QuranService {
             surah,
             verse,
             page: page,
-            reciter: reciter,
+            reciterOption: reciterOption,
           );
           _verseCache[quranVerse.id] = quranVerse;
           pageVerses.add(quranVerse);
@@ -199,10 +252,10 @@ class QuranService {
       _verseCache.clear();
       _pageCache.clear();
       _surahCache = _buildSurahs();
-      final reciter = getSelectedReciter().reciter;
+      final reciterOption = getSelectedReciter();
 
       for (var page = 1; page <= quran.totalPagesCount; page++) {
-        _pageCache[page] = _buildPageVerses(page, reciter: reciter);
+        _pageCache[page] = _buildPageVerses(page, reciterOption: reciterOption);
         for (final verse in _pageCache[page]!) {
           _verseCache[verse.id] = verse;
         }
@@ -315,19 +368,29 @@ class QuranService {
     int surah,
     int verse, {
     int? page,
-    quran.Reciter? reciter,
+    QuranReciterOption? reciterOption,
   }) {
-    final selectedReciter = reciter ?? getSelectedReciter().reciter;
+    final selectedOption = reciterOption ?? getSelectedReciter();
+    final String audioUrl;
+
+    if (selectedOption.everyAyahFolder != null) {
+      final sStr = surah.toString().padLeft(3, '0');
+      final vStr = verse.toString().padLeft(3, '0');
+      audioUrl = 'https://everyayah.com/data/${selectedOption.everyAyahFolder}/$sStr$vStr.mp3';
+    } else {
+      audioUrl = quran.getAudioURLByVerse(
+        surah,
+        verse,
+        reciter: selectedOption.reciter ?? quran.Reciter.arAlafasy,
+      );
+    }
+
     return QuranVerse(
       surah: surah,
       verse: verse,
       text: quran.getVerse(surah, verse, verseEndSymbol: true),
       translation: quran.getVerseTranslation(surah, verse),
-      audioUrl: quran.getAudioURLByVerse(
-        surah,
-        verse,
-        reciter: selectedReciter,
-      ),
+      audioUrl: audioUrl,
       page: page ?? quran.getPageNumber(surah, verse),
       juz: quran.getJuzNumber(surah, verse),
       isSajdah: quran.isSajdahVerse(surah, verse),
@@ -346,7 +409,7 @@ class QuranService {
     return List.unmodifiable(verses);
   }
 
-  List<QuranVerse> _buildPageVerses(int page, {quran.Reciter? reciter}) {
+  List<QuranVerse> _buildPageVerses(int page, {QuranReciterOption? reciterOption}) {
     final pageData = quran.getPageData(page);
     final verses = <QuranVerse>[];
     for (final entry in pageData) {
@@ -354,7 +417,7 @@ class QuranService {
       final start = int.parse(entry['start'].toString());
       final end = int.parse(entry['end'].toString());
       for (var verse = start; verse <= end; verse++) {
-        verses.add(_buildVerse(surah, verse, page: page, reciter: reciter));
+        verses.add(_buildVerse(surah, verse, page: page, reciterOption: reciterOption));
       }
     }
     return verses;
@@ -491,6 +554,18 @@ class QuranService {
     await _storage.write(_selectedReciterKey, key);
     await preloadQuranAsync(force: true);
   }
+
+  int getSelectedAudioSurahOrDefault(int fallback) => _storage.read<int>('quran_selected_audio_surah', fallback);
+  Future<void> setSelectedAudioSurah(int surah) => _storage.write('quran_selected_audio_surah', surah);
+
+  int getSelectedAudioStartVerseOrDefault(int fallback) => _storage.read<int>('quran_selected_audio_start_verse', fallback);
+  Future<void> setSelectedAudioStartVerse(int verse) => _storage.write('quran_selected_audio_start_verse', verse);
+
+  int getSelectedAudioEndVerseOrDefault(int fallback) => _storage.read<int>('quran_selected_audio_end_verse', fallback);
+  Future<void> setSelectedAudioEndVerse(int verse) => _storage.write('quran_selected_audio_end_verse', verse);
+
+  int getSelectedAudioRepeatCount() => _storage.read<int>('quran_selected_audio_repeat_count', 1);
+  Future<void> setSelectedAudioRepeatCount(int count) => _storage.write('quran_selected_audio_repeat_count', count);
 
   bool isFavorite(String id) =>
       _storage.readStringList(_favoritesKey).contains(id);

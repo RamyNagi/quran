@@ -13,6 +13,7 @@ import 'pages/profile_page.dart';
 import 'pages/quran_page.dart';
 import 'pages/salat_page.dart';
 import 'pages/sunnah_page.dart';
+import 'services/audio_download_service.dart';
 import 'services/audio_service.dart';
 import 'services/memorization_speech_service.dart';
 import 'services/notification_service.dart';
@@ -40,6 +41,7 @@ Future<void> main() async {
   Get.put(PrayerService(storage), permanent: true);
   Get.put(QuranService(storage), permanent: true);
   Get.put(QuranAudioService(), permanent: true);
+  Get.put(AudioDownloadService(), permanent: true);
   Get.put(MemorizationSpeechService(), permanent: true);
   Get.put(QiblaService(), permanent: true);
   Get.put(AppController(storage), permanent: true);

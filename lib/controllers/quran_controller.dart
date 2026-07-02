@@ -131,7 +131,7 @@ class QuranController extends GetxController {
   Future<void> playVerse(QuranVerse verse) async {
     errorMessage.value = '';
     try {
-      await _audioService.play(verse.audioUrl);
+      await _audioService.play(verse.audioUrl, verse: verse);
     } catch (_) {
       errorMessage.value = 'audio_unavailable'.tr;
     }

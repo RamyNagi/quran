@@ -259,7 +259,7 @@ class _QuranMemorizationPageState extends State<QuranMemorizationPage> {
         .where((url) => url.trim().isNotEmpty)
         .toList();
     if (urls.isEmpty) return;
-    await _audioService.playPlaylist(urls);
+    await _audioService.playPlaylist(urls, verses: verses);
   }
 
   void _resetAttempt() {

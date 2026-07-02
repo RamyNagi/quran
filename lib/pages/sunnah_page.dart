@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import '../services/storage_service.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/arabesque_painter.dart';
+import '../static/mysnakbar.dart';
 
 class SunnahPage extends StatefulWidget {
   const SunnahPage({super.key});
@@ -529,12 +530,9 @@ class _SunnahPageState extends State<SunnahPage> {
         _downloadedEditions.add(book.editionId);
       });
 
-      Get.snackbar(
-        'تم تحميل الكتاب',
-        '${book.title} - ${hadiths.length} حديث محفوظ داخل التطبيق',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(14.r),
-        duration: const Duration(seconds: 3),
+      MySnackbar.showSuccess(
+        title: 'تم تحميل الكتاب',
+        message: '${book.title} - ${hadiths.length} حديث محفوظ داخل التطبيق',
       );
     } on TimeoutException {
       _showDownloadError(
@@ -552,23 +550,18 @@ class _SunnahPageState extends State<SunnahPage> {
   void _showDownloadError(_SunnahBook book, String message) {
     if (!mounted) return;
     setState(() => _downloadingEditions.remove(book.editionId));
-    Get.snackbar(
-      book.title,
-      message,
-      snackPosition: SnackPosition.BOTTOM,
-      margin: EdgeInsets.all(14.r),
-      duration: const Duration(seconds: 3),
+    MySnackbar.showError(
+      title: book.title,
+      message: message,
     );
   }
 
   void _openBook(_SunnahBook book, {String initialQuery = ''}) {
     final rawBook = _storage.read<String>(_downloadKey(book.editionId), '');
     if (rawBook.isEmpty) {
-      Get.snackbar(
-        'الكتاب غير محمل',
-        'حمّل الكتاب أولا ثم افتحه للقراءة داخل التطبيق.',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(14.r),
+      MySnackbar.showWarning(
+        title: 'الكتاب غير محمل',
+        message: 'حمّل الكتاب أولا ثم افتحه للقراءة داخل التطبيق.',
       );
       return;
     }
@@ -587,11 +580,9 @@ class _SunnahPageState extends State<SunnahPage> {
         ),
       );
     } catch (_) {
-      Get.snackbar(
-        book.title,
-        'الملف المحفوظ غير صالح. أعد تحميل الكتاب مرة أخرى.',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: EdgeInsets.all(14.r),
+      MySnackbar.showError(
+        title: book.title,
+        message: 'الملف المحفوظ غير صالح. أعد تحميل الكتاب مرة أخرى.',
       );
     }
   }

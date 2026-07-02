@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import '../controllers/prayer_controller.dart';
 import '../services/notification_service.dart';
 import '../services/storage_service.dart';
+import '../static/mysnakbar.dart';
 
 class AppController extends GetxController {
   AppController(this._storage);
@@ -237,10 +238,9 @@ class AppController extends GetxController {
       final prayerKey = payload.substring('prayer:'.length);
       navigateToPage(1);
       Future<void>.delayed(const Duration(milliseconds: 2100), () {
-        Get.snackbar(
-          'prayer_times'.tr,
-          '${prayerKey.tr} - ${'notification_opened'.tr}',
-          snackPosition: SnackPosition.BOTTOM,
+        MySnackbar.showInfo(
+          title: 'prayer_times'.tr,
+          message: '${prayerKey.tr} - ${'notification_opened'.tr}',
         );
       });
     }
