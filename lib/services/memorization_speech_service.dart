@@ -51,7 +51,7 @@ class MemorizationSpeechService {
         partialResults: true,
         cancelOnError: false,
         onDevice: false,
-        listenMode: speech.ListenMode.dictation,
+        listenMode: speech.ListenMode.confirmation,
         pauseFor: Duration(seconds: 8),
         listenFor: Duration(minutes: 10),
       ),

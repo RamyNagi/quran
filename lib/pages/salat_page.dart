@@ -17,9 +17,9 @@ class SalatPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<PrayerController>();
     final theme = Theme.of(context);
-    final goldColor = theme.brightness == Brightness.dark
-        ? const Color(0xFFD4AF37)
-        : const Color(0xFFC5A059);
+    final isDark = theme.brightness == Brightness.dark;
+    final goldColor = theme.colorScheme.secondary;
+    final accentColor = isDark ? goldColor : theme.colorScheme.primary;
 
     return Scaffold(
       body: ArabesqueBackground(
@@ -34,7 +34,7 @@ class SalatPage extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.schedule, color: goldColor, size: 28.r),
+                      Icon(Icons.schedule, color: accentColor, size: 28.r),
                       SizedBox(width: 12.w),
                       Expanded(
                         child: Text(
@@ -52,10 +52,10 @@ class SalatPage extends StatelessWidget {
                                 height: 18.r,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: goldColor,
+                                  color: accentColor,
                                 ),
                               )
-                            : Icon(Icons.my_location, color: goldColor),
+                            : Icon(Icons.my_location, color: accentColor),
                       ),
                     ],
                   ),
@@ -91,7 +91,7 @@ class SalatPage extends StatelessWidget {
                     Text(
                       'egyptian_general_authority'.tr,
                       style: theme.textTheme.labelMedium?.copyWith(
-                        color: goldColor,
+                        color: accentColor,
                       ),
                     ),
                     SizedBox(height: 12.h),
@@ -139,12 +139,22 @@ class _NextPrayerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final cardBg = isDark
+        ? theme.colorScheme.primaryContainer.withValues(alpha: 0.6)
+        : theme.colorScheme.primary.withValues(alpha: 0.95);
+
     return Container(
       padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.45),
+        color: cardBg,
         borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(color: goldColor.withValues(alpha: 0.25)),
+        border: Border.all(
+          color: isDark
+              ? goldColor.withValues(alpha: 0.25)
+              : theme.colorScheme.primary.withValues(alpha: 0.35),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,13 +168,20 @@ class _NextPrayerCard extends StatelessWidget {
                   location,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: isDark ? theme.textTheme.bodySmall?.color : theme.colorScheme.onPrimary.withValues(alpha: 0.9),
+                  ),
                 ),
               ),
             ],
           ),
           SizedBox(height: 18.h),
-          Text('next_prayer'.tr, style: theme.textTheme.labelMedium),
+          Text(
+            'next_prayer'.tr, 
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: goldColor,
+            ),
+          ),
           SizedBox(height: 6.h),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -174,7 +191,7 @@ class _NextPrayerCard extends StatelessWidget {
                   title,
                   style: theme.textTheme.displayLarge?.copyWith(
                     fontSize: 36.sp,
-                    color: Colors.white,
+                    color: theme.colorScheme.onPrimary,
                   ),
                 ),
               ),
@@ -183,7 +200,7 @@ class _NextPrayerCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 34.sp,
                   fontWeight: FontWeight.bold,
-                  color: goldColor,
+                  color: theme.colorScheme.onPrimary,
                 ),
               ),
             ],
@@ -191,7 +208,10 @@ class _NextPrayerCard extends StatelessWidget {
           SizedBox(height: 8.h),
           Text(
             'in_time'.trParams({'time': countdown}),
-            style: theme.textTheme.bodyMedium,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: isDark ? theme.colorScheme.inversePrimary : const Color(0xFFD1F2E5),
+              fontStyle: FontStyle.italic,
+            ),
           ),
           SizedBox(height: 16.h),
           InkWell(
@@ -272,12 +292,26 @@ class _QiblaCompassCardState extends State<_QiblaCompassCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
       padding: EdgeInsets.all(18.r),
       decoration: BoxDecoration(
         color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(22.r),
-        border: Border.all(color: widget.goldColor.withValues(alpha: 0.18)),
+        border: Border.all(
+          color: isDark
+              ? widget.goldColor.withValues(alpha: 0.18)
+              : theme.colorScheme.primary.withValues(alpha: 0.12),
+        ),
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: theme.shadowColor.withValues(alpha: 0.03),
+                  blurRadius: 10.r,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: !_isActive
           ? _CompassIdleContent(
@@ -342,24 +376,27 @@ class _CompassIdleContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final accentColor = isDark ? goldColor : theme.colorScheme.primary;
+
     return Column(
       children: [
         Row(
           children: [
-            Icon(Icons.explore, color: goldColor),
+            Icon(Icons.explore, color: accentColor),
             SizedBox(width: 8.w),
             Expanded(
               child: Text(
                 'qibla'.tr,
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: goldColor,
+                  color: accentColor,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
             Text(
               '${qiblaDegrees.toStringAsFixed(1)}°',
-              style: theme.textTheme.headlineMedium?.copyWith(color: goldColor),
+              style: theme.textTheme.headlineMedium?.copyWith(color: accentColor),
             ),
           ],
         ),
@@ -398,26 +435,28 @@ class _CompassContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final accentColor = isDark ? goldColor : theme.colorScheme.primary;
     final rotation = ((qiblaDegrees - (headingDegrees ?? 0)) + 360) % 360;
 
     return Column(
       children: [
         Row(
           children: [
-            Icon(Icons.explore, color: goldColor),
+            Icon(Icons.explore, color: accentColor),
             SizedBox(width: 8.w),
             Expanded(
               child: Text(
                 'qibla'.tr,
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: goldColor,
+                  color: accentColor,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
             Text(
               '${qiblaDegrees.toStringAsFixed(1)}°',
-              style: theme.textTheme.headlineMedium?.copyWith(color: goldColor),
+              style: theme.textTheme.headlineMedium?.copyWith(color: accentColor),
             ),
           ],
         ),
@@ -432,7 +471,7 @@ class _CompassContent extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: goldColor.withValues(alpha: 0.35),
+                    color: accentColor.withValues(alpha: 0.35),
                     width: 2,
                   ),
                 ),
@@ -443,13 +482,13 @@ class _CompassContent extends StatelessWidget {
               Positioned(right: 16.w, child: Text('E', style: _label(theme))),
               Transform.rotate(
                 angle: rotation * math.pi / 180,
-                child: Icon(Icons.navigation, color: goldColor, size: 72.r),
+                child: Icon(Icons.navigation, color: accentColor, size: 72.r),
               ),
               Container(
                 width: 10.r,
                 height: 10.r,
                 decoration: BoxDecoration(
-                  color: goldColor,
+                  color: accentColor,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -467,7 +506,7 @@ class _CompassContent extends StatelessWidget {
           Text(
             '${'device_heading'.tr}: ${headingDegrees!.toStringAsFixed(1)}°',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: goldColor.withValues(alpha: 0.75),
+              color: accentColor.withValues(alpha: 0.75),
             ),
           ),
         ],
@@ -505,27 +544,38 @@ class _PrayerRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final activeColor = isDark ? goldColor : theme.colorScheme.primary;
+    final activeBg = isDark ? goldColor.withValues(alpha: 0.08) : theme.colorScheme.primary.withValues(alpha: 0.06);
+    final activeBorder = isDark ? goldColor.withValues(alpha: 0.35) : theme.colorScheme.primary.withValues(alpha: 0.3);
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       decoration: BoxDecoration(
         color: active
-            ? goldColor.withValues(alpha: 0.10)
+            ? activeBg
             : theme.cardTheme.color,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: active ? goldColor : goldColor.withValues(alpha: 0.16),
+          color: active 
+              ? activeBorder 
+              : (isDark ? goldColor.withValues(alpha: 0.1) : theme.colorScheme.onSurface.withValues(alpha: 0.06)),
         ),
       ),
       child: Row(
         children: [
-          Icon(active ? Icons.notifications_active : Icons.schedule,
-              color: goldColor, size: 22.r),
+          Icon(
+            active ? Icons.notifications_active : Icons.schedule,
+            color: active ? activeColor : (isDark ? goldColor.withValues(alpha: 0.6) : theme.colorScheme.primary.withValues(alpha: 0.5)),
+            size: 22.r,
+          ),
           SizedBox(width: 14.w),
           Expanded(
             child: Text(
               name,
               style: theme.textTheme.bodyLarge?.copyWith(
                 fontWeight: active ? FontWeight.bold : FontWeight.w500,
+                color: active ? activeColor : theme.textTheme.bodyLarge?.color,
               ),
             ),
           ),
@@ -533,13 +583,14 @@ class _PrayerRow extends StatelessWidget {
             time,
             style: theme.textTheme.headlineMedium?.copyWith(
               fontSize: 20.sp,
-              color: active ? goldColor : theme.colorScheme.onSurface,
+              color: active ? activeColor : theme.colorScheme.onSurface.withValues(alpha: 0.8),
+              fontWeight: active ? FontWeight.bold : FontWeight.w500,
             ),
           ),
           SizedBox(width: 8.w),
           Switch.adaptive(
             value: enabled,
-            activeColor: goldColor,
+            activeColor: activeColor,
             onChanged: onChanged,
           ),
         ],
@@ -556,14 +607,23 @@ class _InfoBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final accentColor = isDark ? goldColor : theme.colorScheme.primary;
     return Container(
       padding: EdgeInsets.all(12.r),
       decoration: BoxDecoration(
-        color: goldColor.withValues(alpha: 0.10),
+        color: accentColor.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: goldColor.withValues(alpha: 0.25)),
+        border: Border.all(color: accentColor.withValues(alpha: 0.25)),
       ),
-      child: Text(text, style: Theme.of(context).textTheme.bodySmall),
+      child: Text(
+        text, 
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: isDark ? theme.textTheme.bodySmall?.color : theme.colorScheme.primary,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
     );
   }
 }

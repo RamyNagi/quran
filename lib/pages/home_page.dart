@@ -3,7 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../controllers/app_controller.dart';
 import '../controllers/prayer_controller.dart';
-import '../services/quran_service.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/arabesque_painter.dart';
 import '../static/mysnakbar.dart';
@@ -15,12 +14,8 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppController controller = Get.find<AppController>();
     final PrayerController prayerController = Get.find<PrayerController>();
-    final QuranService quranService = Get.find<QuranService>();
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final goldColor = isDark
-        ? const Color(0xFFD4AF37)
-        : const Color(0xFFC5A059);
+    final goldColor = theme.colorScheme.secondary;
 
     return Scaffold(
       body: ArabesqueBackground(
@@ -38,16 +33,9 @@ class HomePage extends StatelessWidget {
                     SizedBox(height: 24.h),
                     _buildNextPrayerCard(context, prayerController, goldColor),
                     SizedBox(height: 24.h),
-                    _buildOrnamentDivider(goldColor),
+                    _buildOrnamentDivider(context, goldColor),
                     SizedBox(height: 16.h),
                     _buildPrayerTimesList(context, prayerController, goldColor),
-                    SizedBox(height: 24.h),
-                    _buildDailyInspiration(
-                      context,
-                      controller,
-                      quranService,
-                      goldColor,
-                    ),
                     SizedBox(height: 24.h),
                     _buildBentoActions(context, goldColor),
                     SizedBox(height: 100.h),
@@ -69,6 +57,7 @@ class HomePage extends StatelessWidget {
     Color goldColor,
   ) {
     final theme = Theme.of(context);
+    final prayerController = Get.find<PrayerController>();
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
       decoration: BoxDecoration(
@@ -96,19 +85,25 @@ class HomePage extends StatelessWidget {
                       fontSize: 16.sp,
                     ),
                   ),
-                  Obx(
-                    () => Text(
-                      controller.currentLanguage.value == 'en'
-                          ? '12 Ramadan 1445 • London, UK'
-                          : '١٢ رمضان ١٤٤٥ • لندن، بريطانيا',
+                  Obx(() {
+                    final day = prayerController.prayerDay.value;
+                    final location =
+                        day?.locationLabel ?? 'loading_location'.tr;
+                    final hijri = _getHijriDateString(
+                      DateTime.now(),
+                      controller.currentLanguage.value,
+                    );
+                    return Text(
+                      '$hijri • $location',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 10.sp,
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w500,
                         color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.6,
+                          alpha: 0.85,
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  }),
                 ],
               ),
             ],
@@ -117,10 +112,11 @@ class HomePage extends StatelessWidget {
           IconButton(
             icon: Icon(Icons.calendar_today, color: goldColor, size: 20.r),
             onPressed: () {
-              MySnackbar.showInfo(
-                title: 'ramadan_date'.tr,
-                message: '12 Ramadan 1445 AH',
+              final hijri = _getHijriDateString(
+                DateTime.now(),
+                controller.currentLanguage.value,
               );
+              MySnackbar.showInfo(title: 'ramadan_date'.tr, message: hijri);
             },
           ),
         ],
@@ -135,14 +131,18 @@ class HomePage extends StatelessWidget {
     Color goldColor,
   ) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Column(
       children: [
         Text(
-          'welcome_back'.tr.toUpperCase(),
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: goldColor.withValues(alpha: 0.7),
-            letterSpacing: 2.0,
-            fontSize: 11.sp,
+          'welcome_back'.tr,
+          style: TextStyle(
+            color: isDark ? goldColor : theme.colorScheme.primary,
+            fontSize: 17.sp,
+            fontWeight: FontWeight.bold,
+            fontFamily: controller.currentLanguage.value == 'ar'
+                ? 'Hafs'
+                : null,
           ),
         ),
         SizedBox(height: 4.h),
@@ -167,6 +167,7 @@ class HomePage extends StatelessWidget {
     Color goldColor,
   ) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Obx(() {
       final day = controller.prayerDay.value;
       if (day == null) {
@@ -189,17 +190,25 @@ class HomePage extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              goldColor.withValues(alpha: 0.3),
-              goldColor.withValues(alpha: 0.05),
-              goldColor.withValues(alpha: 0.2),
-            ],
+            colors: isDark
+                ? [
+                    goldColor.withValues(alpha: 0.3),
+                    goldColor.withValues(alpha: 0.05),
+                    goldColor.withValues(alpha: 0.2),
+                  ]
+                : [
+                    theme.colorScheme.primary.withValues(alpha: 0.25),
+                    theme.colorScheme.primary.withValues(alpha: 0.05),
+                    theme.colorScheme.primary.withValues(alpha: 0.18),
+                  ],
           ),
         ),
         child: Container(
           padding: EdgeInsets.all(20.r),
           decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+            color: isDark
+                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.6)
+                : theme.colorScheme.primary.withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(28.r),
           ),
           child: Column(
@@ -241,7 +250,7 @@ class HomePage extends StatelessWidget {
                           style: theme.textTheme.displayLarge?.copyWith(
                             fontSize: 32.sp,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: theme.colorScheme.onPrimary,
                           ),
                         ),
                         SizedBox(height: 4.h),
@@ -269,7 +278,7 @@ class HomePage extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 36.sp,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: theme.colorScheme.onPrimary,
                         ),
                       ),
                       SizedBox(height: 4.h),
@@ -282,7 +291,9 @@ class HomePage extends StatelessWidget {
                           textAlign: TextAlign.end,
                           style: TextStyle(
                             fontSize: 11.sp,
-                            color: goldColor.withValues(alpha: 0.6),
+                            color: isDark
+                                ? goldColor.withValues(alpha: 0.6)
+                                : goldColor,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -296,7 +307,7 @@ class HomePage extends StatelessWidget {
                 height: 4.h,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: theme.colorScheme.onPrimary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(2.r),
                 ),
                 child: FractionallySizedBox(
@@ -325,7 +336,11 @@ class HomePage extends StatelessWidget {
   }
 
   // ── Ornament Divider ───────────────────────────────────────────────────────
-  Widget _buildOrnamentDivider(Color goldColor) {
+  Widget _buildOrnamentDivider(BuildContext context, Color goldColor) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dividerColor = isDark ? goldColor : theme.colorScheme.primary;
+
     return Row(
       children: [
         Expanded(
@@ -333,7 +348,10 @@ class HomePage extends StatelessWidget {
             height: 1,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.transparent, goldColor.withValues(alpha: 0.4)],
+                colors: [
+                  Colors.transparent,
+                  dividerColor.withValues(alpha: 0.35),
+                ],
               ),
             ),
           ),
@@ -343,7 +361,7 @@ class HomePage extends StatelessWidget {
           child: Text(
             '❧',
             style: TextStyle(
-              color: goldColor.withValues(alpha: 0.6),
+              color: dividerColor.withValues(alpha: 0.55),
               fontSize: 18.sp,
             ),
           ),
@@ -353,7 +371,10 @@ class HomePage extends StatelessWidget {
             height: 1,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [goldColor.withValues(alpha: 0.4), Colors.transparent],
+                colors: [
+                  dividerColor.withValues(alpha: 0.35),
+                  Colors.transparent,
+                ],
               ),
             ),
           ),
@@ -369,6 +390,12 @@ class HomePage extends StatelessWidget {
     Color goldColor,
   ) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final headerColor = isDark ? goldColor : theme.colorScheme.primary;
+    final btnColor = isDark
+        ? goldColor.withValues(alpha: 0.85)
+        : theme.colorScheme.primary.withValues(alpha: 0.85);
+
     return Obx(() {
       final day = controller.prayerDay.value;
       if (day == null) return const SizedBox.shrink();
@@ -381,8 +408,8 @@ class HomePage extends StatelessWidget {
               Text(
                 'prayer_times'.tr.toUpperCase(),
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: goldColor,
-                  fontSize: 14.sp,
+                  color: headerColor,
+                  fontSize: 15.sp,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -391,8 +418,9 @@ class HomePage extends StatelessWidget {
                 child: Text(
                   'adjust_settings'.tr,
                   style: TextStyle(
-                    color: goldColor.withValues(alpha: 0.6),
+                    color: btnColor,
                     fontSize: 12.sp,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
@@ -445,17 +473,26 @@ class HomePage extends StatelessWidget {
     bool isHighlighted = false,
   }) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final activeColor = isDark ? goldColor : theme.colorScheme.primary;
+    final activeBg = isDark
+        ? goldColor.withValues(alpha: 0.08)
+        : theme.colorScheme.primary.withValues(alpha: 0.06);
+    final activeBorder = isDark
+        ? goldColor.withValues(alpha: 0.35)
+        : theme.colorScheme.primary.withValues(alpha: 0.3);
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
       decoration: BoxDecoration(
-        color: isHighlighted
-            ? goldColor.withValues(alpha: 0.08)
-            : theme.cardTheme.color,
+        color: isHighlighted ? activeBg : theme.cardTheme.color,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
           color: isHighlighted
-              ? goldColor.withValues(alpha: 0.4)
-              : goldColor.withValues(alpha: 0.1),
+              ? activeBorder
+              : (isDark
+                    ? goldColor.withValues(alpha: 0.1)
+                    : Colors.black.withValues(alpha: 0.06)),
           width: isHighlighted ? 1.5 : 1.0,
         ),
       ),
@@ -464,7 +501,15 @@ class HomePage extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: goldColor.withValues(alpha: 0.6), size: 20.r),
+              Icon(
+                icon,
+                color: isHighlighted
+                    ? activeColor
+                    : (isDark
+                          ? goldColor.withValues(alpha: 0.6)
+                          : theme.colorScheme.primary.withValues(alpha: 0.5)),
+                size: 20.r,
+              ),
               SizedBox(width: 16.w),
               Text(
                 name,
@@ -472,6 +517,9 @@ class HomePage extends StatelessWidget {
                   fontWeight: isHighlighted
                       ? FontWeight.bold
                       : FontWeight.normal,
+                  color: isHighlighted
+                      ? activeColor
+                      : theme.textTheme.bodyLarge?.color,
                   fontSize: 16.sp,
                 ),
               ),
@@ -482,7 +530,7 @@ class HomePage extends StatelessWidget {
             style: theme.textTheme.headlineMedium?.copyWith(
               fontSize: 18.sp,
               color: isHighlighted
-                  ? goldColor
+                  ? activeColor
                   : theme.colorScheme.onSurface.withValues(alpha: 0.8),
               fontWeight: isHighlighted ? FontWeight.bold : FontWeight.w500,
             ),
@@ -492,232 +540,18 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  // ── Daily Inspiration ──────────────────────────────────────────────────────
-  Widget _buildDailyInspiration(
-    BuildContext context,
-    AppController controller,
-    QuranService quranService,
-    Color goldColor,
-  ) {
-    final theme = Theme.of(context);
-    return Column(
-      children: [
-        Container(
-          padding: EdgeInsets.all(2.r),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24.r),
-            gradient: LinearGradient(
-              colors: [
-                goldColor.withValues(alpha: 0.2),
-                Colors.transparent,
-                goldColor.withValues(alpha: 0.1),
-              ],
-            ),
-          ),
-          child: Container(
-            padding: EdgeInsets.all(20.r),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(22.r),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'ayah_of_the_day'.tr.toUpperCase(),
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: goldColor.withValues(alpha: 0.7),
-                    fontSize: 10.sp,
-                  ),
-                ),
-                SizedBox(height: 12.h),
-                Obx(() {
-                  controller.currentDayKey.value;
-                  final ayah = quranService.getAyahOfDay(
-                    DateTime.now(),
-                    arabicReference: controller.currentLanguage.value == 'ar',
-                  );
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        ayah.verse.text,
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          color: Colors.white,
-                          fontStyle: FontStyle.italic,
-                          fontSize: 20.sp,
-                          height: 1.5,
-                        ),
-                      ),
-                      SizedBox(height: 12.h),
-                      Text(
-                        '— ${ayah.reference}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: goldColor.withValues(alpha: 0.6),
-                          fontStyle: FontStyle.italic,
-                          fontSize: 12.sp,
-                        ),
-                      ),
-                    ],
-                  );
-                }),
-              ],
-            ),
-          ),
-        ),
-        SizedBox(height: 16.h),
-        InkWell(
-          onTap: controller.showCurrentDhikr,
-          borderRadius: BorderRadius.circular(24.r),
-          child: Container(
-            width: double.infinity,
-            constraints: BoxConstraints(minHeight: 172.h),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24.r),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  theme.colorScheme.primaryContainer,
-                  theme.colorScheme.primary,
-                  Colors.black,
-                ],
-              ),
-            ),
-            padding: EdgeInsets.all(20.r),
-            child: Obx(() {
-              final dhikr = controller.currentDailyDhikr;
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.self_improvement,
-                        color: goldColor,
-                        size: 20.r,
-                      ),
-                      SizedBox(width: 8.w),
-                      Expanded(
-                        child: Text(
-                          'daily_dhikr'.tr,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      Icon(
-                        Icons.open_in_new,
-                        color: Colors.white70,
-                        size: 18.r,
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 12.h),
-                  Text(
-                    dhikr.text,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.start,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20.sp,
-                      height: 1.45,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
-                  Text(
-                    dhikr.reference,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12.sp,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                  SizedBox(height: 14.h),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4.r),
-                    child: LinearProgressIndicator(
-                      value: controller.dhikrProgressValue,
-                      minHeight: 6.h,
-                      backgroundColor: Colors.white.withValues(alpha: 0.16),
-                      valueColor: AlwaysStoppedAnimation<Color>(goldColor),
-                    ),
-                  ),
-                  SizedBox(height: 10.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          controller.dhikrProgressLabel,
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      FilledButton.icon(
-                        onPressed:
-                            controller.dhikrCompletedCount.value >=
-                                controller.dhikrDailyTarget.value
-                            ? null
-                            : controller.completeCurrentDhikr,
-                        icon: const Icon(Icons.check_circle_outline),
-                        label: Text('dhikr_done'.tr),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: goldColor,
-                          foregroundColor: Colors.black,
-                          disabledBackgroundColor: Colors.white.withValues(
-                            alpha: 0.18,
-                          ),
-                          disabledForegroundColor: Colors.white54,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              );
-            }),
-          ),
-        ),
-      ],
-    );
-  }
-
   // ── Bento Actions ──────────────────────────────────────────────────────────
   Widget _buildBentoActions(BuildContext context, Color goldColor) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      childAspectRatio: 1.4,
-      crossAxisSpacing: 16.w,
-      mainAxisSpacing: 16.h,
-      children: [
-        _buildBentoCard(
-          context,
-          Icons.explore,
-          'qibla'.tr,
-          'qibla_val'.tr,
-          goldColor,
-          onTap: () => Get.find<AppController>().navigateToPage(1),
-        ),
-        _buildBentoCard(
-          context,
-          Icons.volunteer_activism,
-          'zakat'.tr,
-          'zakat_val'.tr,
-          goldColor,
-        ),
-      ],
+    return SizedBox(
+      height: 110.h,
+      child: _buildBentoCard(
+        context,
+        Icons.explore,
+        'qibla'.tr,
+        'qibla_val'.tr,
+        goldColor,
+        onTap: () => Get.find<AppController>().navigateToPage(1),
+      ),
     );
   }
 
@@ -730,14 +564,14 @@ class HomePage extends StatelessWidget {
     VoidCallback? onTap,
   }) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final accentColor = isDark ? goldColor : theme.colorScheme.primary;
+
     return InkWell(
       onTap:
           onTap ??
           () {
-            MySnackbar.showInfo(
-              title: title,
-              message: subtitle,
-            );
+            MySnackbar.showInfo(title: title, message: subtitle);
           },
       borderRadius: BorderRadius.circular(24.r),
       child: Container(
@@ -745,7 +579,20 @@ class HomePage extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.cardTheme.color,
           borderRadius: BorderRadius.circular(24.r),
-          border: Border.all(color: goldColor.withValues(alpha: 0.15)),
+          border: Border.all(
+            color: isDark
+                ? goldColor.withValues(alpha: 0.15)
+                : theme.colorScheme.primary.withValues(alpha: 0.12),
+          ),
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10.r,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -754,11 +601,11 @@ class HomePage extends StatelessWidget {
             Container(
               padding: EdgeInsets.all(8.r),
               decoration: BoxDecoration(
-                color: goldColor.withValues(alpha: 0.1),
+                color: accentColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: goldColor.withValues(alpha: 0.2)),
+                border: Border.all(color: accentColor.withValues(alpha: 0.2)),
               ),
-              child: Icon(icon, color: goldColor, size: 20.r),
+              child: Icon(icon, color: accentColor, size: 20.r),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -770,10 +617,13 @@ class HomePage extends StatelessWidget {
                     fontSize: 14.sp,
                   ),
                 ),
+                SizedBox(height: 2.h),
                 Text(
                   subtitle,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: goldColor.withValues(alpha: 0.6),
+                    color: isDark
+                        ? goldColor.withValues(alpha: 0.6)
+                        : theme.colorScheme.primary.withValues(alpha: 0.7),
                     fontSize: 12.sp,
                   ),
                 ),
@@ -786,4 +636,75 @@ class HomePage extends StatelessWidget {
   }
 
   // ── Bottom Nav ─────────────────────────────────────────────────────────────
+  String _getHijriDateString(DateTime date, String lang) {
+    int year = date.year;
+    int month = date.month;
+    int day = date.day;
+
+    if (month < 3) {
+      year -= 1;
+      month += 12;
+    }
+
+    int a = (year / 100).floor();
+    int b = (a / 4).floor();
+    int c = 2 - a + b;
+    int e = (365.25 * (year + 4716)).floor();
+    int f = (30.6001 * (month + 1)).floor();
+    double jd = c + day + e + f - 1524.5;
+
+    double epoch = 1948439.5;
+    double diff = jd - epoch;
+
+    int cycle = (diff / 10631).floor();
+    double cycleRemainder = diff % 10631;
+
+    int yearInCycle = (cycleRemainder / 354.36667).floor();
+    double yearRemainder = cycleRemainder - (yearInCycle * 354.36667);
+
+    int hijriYear = cycle * 30 + yearInCycle + 1;
+    int hijriMonth = (yearRemainder / 29.5).floor() + 1;
+    int hijriDay = (yearRemainder % 29.5).round();
+
+    if (hijriDay == 0) {
+      hijriMonth -= 1;
+      hijriDay = 30;
+    }
+    if (hijriMonth == 0) {
+      hijriYear -= 1;
+      hijriMonth = 12;
+    }
+    if (hijriMonth > 12) {
+      hijriMonth = 12;
+    }
+    if (hijriDay > 30) {
+      hijriDay = 30;
+    }
+
+    final String dayStr = lang == 'ar'
+        ? _toArabicDigits(hijriDay)
+        : hijriDay.toString();
+    final String yearStr = lang == 'ar'
+        ? _toArabicDigits(hijriYear)
+        : hijriYear.toString();
+    final String monthName = 'hijri_month_$hijriMonth'.tr;
+
+    return 'hijri_date_format'.trParams({
+      'day': dayStr,
+      'month': monthName,
+      'year': yearStr,
+    });
+  }
+
+  String _toArabicDigits(int number) {
+    final arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    return number
+        .toString()
+        .split('')
+        .map((char) {
+          final val = int.tryParse(char);
+          return val != null ? arabicDigits[val] : char;
+        })
+        .join('');
+  }
 }

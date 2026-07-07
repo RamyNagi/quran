@@ -218,7 +218,7 @@ class _QuranAudioPageState extends State<QuranAudioPage> {
 
     final cardColor = isNight ? AppTheme.surfaceNight : AppTheme.surfaceLight;
     final textColor = isNight ? AppTheme.textNight : AppTheme.textLight;
-    final goldColor = isNight ? AppTheme.goldNight : AppTheme.goldLight;
+    final goldColor = isNight ? AppTheme.textVariantNight : AppTheme.primaryLight;
     final textVariantColor = isNight ? AppTheme.textVariantNight : AppTheme.textVariantLight;
 
     final totalSurahs = List.generate(114, (i) => i + 1);

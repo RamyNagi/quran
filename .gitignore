@@ -41,3 +41,6 @@ macos/.symlinks/
 .env
 .env.*
 !.env.example
+
+# شيل الملف الكبير
+assets/quran_fonts.zip

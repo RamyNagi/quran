@@ -1,4 +1,6 @@
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
+import 'package:quran/quran.dart' as quran;
 import 'package:get/get.dart';
 import 'quran_service.dart';
 import 'audio_download_service.dart';
@@ -27,17 +29,30 @@ class QuranAudioService {
 
   Future<void> play(String url, {QuranVerse? verse}) async {
     playingVerses.clear();
+    final reciter = Get.find<QuranService>().getSelectedReciter();
+    final reciterKey = reciter.key;
+    final reciterName = reciter.name;
+
+    final mediaItem = MediaItem(
+      id: url,
+      album: 'القرآن الكريم',
+      title: verse != null
+          ? 'سورة ${quran.getSurahNameArabic(verse.surah)} - آية ${verse.verse}'
+          : 'تلاوة عذبة',
+      artist: reciterName,
+      artUri: Uri.parse('https://hayah.app/assets/icon.png'),
+    );
+
     if (verse != null) {
       final downloadService = Get.find<AudioDownloadService>();
-      final reciterKey = Get.find<QuranService>().getSelectedReciter().key;
       final localFile = await downloadService.getLocalAudioFile(reciterKey, verse.surah, verse.verse);
       if (await localFile.exists() && (await localFile.length()) > 100) {
-        await _player.setAudioSource(AudioSource.file(localFile.path));
+        await _player.setAudioSource(AudioSource.file(localFile.path, tag: mediaItem));
         await _player.play();
         return;
       }
     }
-    await _player.setUrl(url);
+    await _player.setAudioSource(AudioSource.uri(Uri.parse(url), tag: mediaItem));
     await _player.play();
   }
 
@@ -45,28 +60,42 @@ class QuranAudioService {
     if (urls.isEmpty) return;
 
     final downloadService = Get.find<AudioDownloadService>();
-    final reciterKey = Get.find<QuranService>().getSelectedReciter().key;
-
-    final List<AudioSource> singlePlaylistSources = [];
-    for (int i = 0; i < urls.length; i++) {
-      final url = urls[i];
-      if (i < verses.length) {
-        final verse = verses[i];
-        final localFile = await downloadService.getLocalAudioFile(reciterKey, verse.surah, verse.verse);
-        if (await localFile.exists() && (await localFile.length()) > 100) {
-          singlePlaylistSources.add(AudioSource.file(localFile.path));
-          continue;
-        }
-      }
-      singlePlaylistSources.add(AudioSource.uri(Uri.parse(url)));
-    }
+    final reciter = Get.find<QuranService>().getSelectedReciter();
+    final reciterKey = reciter.key;
+    final reciterName = reciter.name;
 
     final List<AudioSource> repeatedSources = [];
     final List<QuranVerse> repeatedVerses = [];
 
     final safeRepeatCount = repeatCount < 1 ? 1 : repeatCount;
     for (int r = 0; r < safeRepeatCount; r++) {
-      repeatedSources.addAll(singlePlaylistSources);
+      for (int i = 0; i < urls.length; i++) {
+        final url = urls[i];
+        final verse = i < verses.length ? verses[i] : null;
+        
+        final mediaId = verse != null 
+            ? '${verse.surah}_${verse.verse}_r${r}_$i'
+            : 'verse_${r}_$i';
+
+        final mediaItem = MediaItem(
+          id: mediaId,
+          album: 'القرآن الكريم',
+          title: verse != null
+              ? 'سورة ${quran.getSurahNameArabic(verse.surah)} - آية ${verse.verse}'
+              : 'تلاوة عذبة',
+          artist: reciterName,
+          artUri: Uri.parse('https://hayah.app/assets/icon.png'),
+        );
+
+        if (verse != null) {
+          final localFile = await downloadService.getLocalAudioFile(reciterKey, verse.surah, verse.verse);
+          if (await localFile.exists() && (await localFile.length()) > 100) {
+            repeatedSources.add(AudioSource.file(localFile.path, tag: mediaItem));
+            continue;
+          }
+        }
+        repeatedSources.add(AudioSource.uri(Uri.parse(url), tag: mediaItem));
+      }
       repeatedVerses.addAll(verses);
     }
 

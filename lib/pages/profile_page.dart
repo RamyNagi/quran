@@ -1,22 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:quran/quran.dart' as quran;
 
 import '../controllers/app_controller.dart';
-import '../services/notification_service.dart';
+import '../services/quran_service.dart';
+import '../services/audio_download_service.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/arabesque_painter.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _DownloadedReciterInfo {
+  _DownloadedReciterInfo({required this.reciter, required this.surahIds});
+  final QuranReciterOption reciter;
+  final List<int> surahIds;
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  late Future<List<_DownloadedReciterInfo>> _downloadsFuture;
+  final Set<String> _expandedReciters = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshDownloads();
+  }
+
+  void _refreshDownloads() {
+    setState(() {
+      _downloadsFuture = _loadDownloads();
+    });
+  }
+
+  Future<List<_DownloadedReciterInfo>> _loadDownloads() async {
+    final downloadService = Get.find<AudioDownloadService>();
+    final List<_DownloadedReciterInfo> list = [];
+
+    for (final reciter in QuranService.reciters) {
+      final downloadedSurahIds = await downloadService.getDownloadedSurahs(reciter.key);
+      if (downloadedSurahIds.isNotEmpty) {
+        list.add(_DownloadedReciterInfo(
+          reciter: reciter,
+          surahIds: downloadedSurahIds.toList()..sort(),
+        ));
+      }
+    }
+    return list;
+  }
 
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<AppController>();
     final theme = Theme.of(context);
-    final goldColor = theme.brightness == Brightness.dark
-        ? const Color(0xFFD4AF37)
-        : const Color(0xFFC5A059);
+    final isDark = theme.brightness == Brightness.dark;
+    final goldColor = theme.colorScheme.secondary;
+    final accentColor = isDark ? goldColor : theme.colorScheme.primary;
 
     return Scaffold(
       body: ArabesqueBackground(
@@ -26,7 +70,7 @@ class ProfilePage extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.person_outline, color: goldColor, size: 28.r),
+                  Icon(Icons.person_outline, color: accentColor, size: 28.r),
                   SizedBox(width: 12.w),
                   Text(
                     'profile'.tr,
@@ -43,10 +87,10 @@ class ProfilePage extends StatelessWidget {
                   height: 104.r,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: goldColor.withValues(alpha: 0.12),
-                    border: Border.all(color: goldColor, width: 2),
+                    color: accentColor.withValues(alpha: 0.12),
+                    border: Border.all(color: accentColor, width: 2),
                   ),
-                  child: Icon(Icons.person, color: goldColor, size: 58.r),
+                  child: Icon(Icons.person, color: accentColor, size: 58.r),
                 ),
               ),
               SizedBox(height: 14.h),
@@ -63,8 +107,9 @@ class ProfilePage extends StatelessWidget {
               Text(
                 'settings'.tr,
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: goldColor,
+                  color: accentColor,
                   fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               SizedBox(height: 12.h),
@@ -74,34 +119,35 @@ class ProfilePage extends StatelessWidget {
                   title: 'name_label'.tr,
                   subtitle: controller.userName.value,
                   goldColor: goldColor,
-                  trailing: TextButton(
-                    onPressed: () => _showEditNameSheet(context, controller),
-                    child: Text('edit'.tr, style: TextStyle(color: goldColor)),
+                  onTap: () => _showEditNameSheet(context, controller),
+                  trailing: Text(
+                    'edit'.tr,
+                    style: TextStyle(
+                      color: accentColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14.sp,
+                    ),
                   ),
                 ),
               ),
               SizedBox(height: 14.h),
-              _SettingsCard(
-                icon: Icons.language,
-                title: 'language'.tr,
-                goldColor: goldColor,
-                trailing: Obx(
-                  () => OutlinedButton(
-                    onPressed: controller.toggleLanguage,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: goldColor,
-                      side: BorderSide(color: goldColor),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 18.w,
-                        vertical: 10.h,
-                      ),
+              Obx(
+                () {
+                  // Read currentLanguage to register reactive dependency and trigger rebuilds
+                  final _ = controller.currentLanguage.value;
+                  return _SettingsCard(
+                    icon: Icons.language,
+                    title: 'language'.tr,
+                    subtitle: 'current_language_label'.tr,
+                    goldColor: goldColor,
+                    onTap: () => _showLanguageDialog(context, controller),
+                    trailing: Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16.r,
+                      color: accentColor,
                     ),
-                    child: Text(
-                      controller.currentLanguage.value == 'en' ? 'AR' : 'EN',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
+                  );
+                },
               ),
               SizedBox(height: 14.h),
               Obx(
@@ -116,101 +162,235 @@ class ProfilePage extends StatelessWidget {
                   goldColor: goldColor,
                   trailing: Switch.adaptive(
                     value: controller.isNightMode.value,
-                    activeColor: goldColor,
+                    activeColor: accentColor,
                     onChanged: (_) => controller.toggleTheme(),
                   ),
                 ),
               ),
-              SizedBox(height: 14.h),
-              Obx(
-                () => _SettingsCard(
-                  icon: controller.dhikrReminderEnabled.value
-                      ? Icons.notifications_active
-                      : Icons.self_improvement,
-                  title: 'dhikr_reminders'.tr,
-                  subtitle: 'dhikr_reminders_desc'.trParams({
-                    'mode': controller.dhikrReminderModeLabel,
-                  }),
-                  goldColor: goldColor,
-                  trailing: Switch.adaptive(
-                    value: controller.dhikrReminderEnabled.value,
-                    activeColor: goldColor,
-                    onChanged: controller.setDhikrReminderEnabled,
-                  ),
+              SizedBox(height: 24.h),
+              Text(
+                'audio_downloads_manager'.tr,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: accentColor,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 10.h),
-              Obx(
-                () => _DhikrOptionsCard(
-                  icon: Icons.tune,
-                  title: 'dhikr_reminder_mode'.tr,
-                  subtitle: controller.dhikrReminderEnabled.value
-                      ? 'dhikr_reminder_mode_desc'.tr
-                      : 'dhikr_reminder_disabled_desc'.tr,
-                  goldColor: goldColor,
-                  child: Wrap(
-                    spacing: 8.w,
-                    runSpacing: 8.h,
-                    children: [
-                      _ChoiceChipButton(
-                        label: 'dhikr_mode_once_daily'.tr,
-                        selected:
-                            controller.dhikrReminderMode.value ==
-                            DhikrReminderMode.onceDaily,
-                        enabled: controller.dhikrReminderEnabled.value,
-                        goldColor: goldColor,
-                        onSelected: () => controller.setDhikrReminderMode(
-                          DhikrReminderMode.onceDaily,
+              SizedBox(height: 12.h),
+              FutureBuilder<List<_DownloadedReciterInfo>>(
+                future: _downloadsFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20.r),
+                        child: CircularProgressIndicator(color: accentColor),
+                      ),
+                    );
+                  }
+
+                  final list = snapshot.data ?? [];
+                  if (list.isEmpty) {
+                    return Container(
+                      padding: EdgeInsets.all(20.r),
+                      decoration: BoxDecoration(
+                        color: theme.cardTheme.color,
+                        borderRadius: BorderRadius.circular(20.r),
+                        border: Border.all(
+                          color: isDark
+                              ? goldColor.withValues(alpha: 0.1)
+                              : theme.colorScheme.primary.withValues(alpha: 0.08),
                         ),
                       ),
-                      _ChoiceChipButton(
-                        label: 'dhikr_mode_morning_evening'.tr,
-                        selected:
-                            controller.dhikrReminderMode.value ==
-                            DhikrReminderMode.morningEvening,
-                        enabled: controller.dhikrReminderEnabled.value,
-                        goldColor: goldColor,
-                        onSelected: () => controller.setDhikrReminderMode(
-                          DhikrReminderMode.morningEvening,
-                        ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.cloud_off,
+                            color: isDark ? goldColor.withValues(alpha: 0.5) : theme.colorScheme.primary.withValues(alpha: 0.5),
+                            size: 24.r,
+                          ),
+                          SizedBox(width: 14.w),
+                          Expanded(
+                            child: Text(
+                              'no_downloads_yet'.tr,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: isDark ? theme.textTheme.bodyMedium?.color : theme.colorScheme.primary.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      _ChoiceChipButton(
-                        label: 'dhikr_mode_after_prayers'.tr,
-                        selected:
-                            controller.dhikrReminderMode.value ==
-                            DhikrReminderMode.afterPrayers,
-                        enabled: controller.dhikrReminderEnabled.value,
-                        goldColor: goldColor,
-                        onSelected: () => controller.setDhikrReminderMode(
-                          DhikrReminderMode.afterPrayers,
+                    );
+                  }
+
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: list.length,
+                    separatorBuilder: (context, index) => SizedBox(height: 14.h),
+                    itemBuilder: (context, index) {
+                      final info = list[index];
+                      final isExpanded = _expandedReciters.contains(info.reciter.key);
+                      final isFullQuran = info.surahIds.length == 114;
+                      final subtitleText = isFullQuran
+                          ? 'full_quran_downloaded'.tr
+                          : 'surahs_count_label'.trParams({'count': '${info.surahIds.length}'});
+
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: theme.cardTheme.color,
+                          borderRadius: BorderRadius.circular(22.r),
+                          border: Border.all(
+                            color: isDark
+                                ? goldColor.withValues(alpha: 0.18)
+                                : theme.colorScheme.primary.withValues(alpha: 0.12),
+                          ),
+                          boxShadow: isDark
+                              ? []
+                              : [
+                                  BoxShadow(
+                                    color: theme.shadowColor.withValues(alpha: 0.03),
+                                    blurRadius: 10.r,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(height: 10.h),
-              Obx(
-                () => _DhikrOptionsCard(
-                  icon: Icons.flag_outlined,
-                  title: 'dhikr_daily_target'.tr,
-                  subtitle: 'dhikr_daily_target_desc'.tr,
-                  goldColor: goldColor,
-                  child: Wrap(
-                    spacing: 8.w,
-                    children: [
-                      for (final target in const [1, 3, 5])
-                        _ChoiceChipButton(
-                          label: '$target',
-                          selected: controller.dhikrDailyTarget.value == target,
-                          enabled: true,
-                          goldColor: goldColor,
-                          onSelected: () =>
-                              controller.setDhikrDailyTarget(target),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(22.r),
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                if (isExpanded) {
+                                  _expandedReciters.remove(info.reciter.key);
+                                } else {
+                                  _expandedReciters.add(info.reciter.key);
+                                }
+                              });
+                            },
+                            child: Padding(
+                              padding: EdgeInsets.all(16.r),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.all(10.r),
+                                        decoration: BoxDecoration(
+                                          color: accentColor.withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(14.r),
+                                        ),
+                                        child: Icon(Icons.record_voice_over, color: accentColor, size: 22.r),
+                                      ),
+                                      SizedBox(width: 14.w),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              info.reciter.name,
+                                              style: theme.textTheme.bodyLarge?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16.sp,
+                                              ),
+                                            ),
+                                            Text(
+                                              subtitleText,
+                                              style: theme.textTheme.bodySmall?.copyWith(
+                                                color: isDark ? theme.textTheme.bodySmall?.color : theme.colorScheme.primary.withValues(alpha: 0.7),
+                                                fontWeight: isFullQuran ? FontWeight.bold : FontWeight.normal,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Icon(
+                                        isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                        color: accentColor,
+                                        size: 24.r,
+                                      ),
+                                    ],
+                                  ),
+                                  if (isExpanded) ...[
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(vertical: 8.h),
+                                      child: Divider(
+                                        color: isDark
+                                            ? goldColor.withValues(alpha: 0.15)
+                                            : theme.colorScheme.primary.withValues(alpha: 0.1),
+                                        height: 1,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4.h),
+                                    if (isFullQuran)
+                                      Container(
+                                        width: double.infinity,
+                                        padding: EdgeInsets.symmetric(vertical: 14.h),
+                                        decoration: BoxDecoration(
+                                          color: accentColor.withValues(alpha: 0.08),
+                                          borderRadius: BorderRadius.circular(14.r),
+                                          border: Border.all(
+                                            color: accentColor.withValues(alpha: 0.2),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.auto_stories,
+                                              color: accentColor,
+                                              size: 32.r,
+                                            ),
+                                            SizedBox(height: 8.h),
+                                            Text(
+                                              'full_quran_downloaded'.tr,
+                                              style: theme.textTheme.bodyMedium?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: accentColor,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    else
+                                      Wrap(
+                                        spacing: 8.w,
+                                        runSpacing: 8.h,
+                                        children: info.surahIds.map((surahId) {
+                                          final surahName = controller.currentLanguage.value == 'ar'
+                                              ? quran.getSurahNameArabic(surahId)
+                                              : quran.getSurahName(surahId);
+                                          return Container(
+                                            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+                                            decoration: BoxDecoration(
+                                              color: accentColor.withValues(alpha: 0.06),
+                                              borderRadius: BorderRadius.circular(10.r),
+                                              border: Border.all(
+                                                color: accentColor.withValues(alpha: 0.18),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              surahName,
+                                              style: theme.textTheme.bodySmall?.copyWith(
+                                                color: isDark ? theme.textTheme.bodySmall?.color : theme.colorScheme.primary,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 12.sp,
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
-                    ],
-                  ),
-                ),
+                      );
+                    },
+                  );
+                },
               ),
             ],
           ),
@@ -222,72 +402,273 @@ class ProfilePage extends StatelessWidget {
 }
 
 void _showEditNameSheet(BuildContext context, AppController controller) {
-  final nameController = TextEditingController(text: controller.userName.value);
+  final theme = Theme.of(context);
+  final isDark = theme.brightness == Brightness.dark;
+  final goldColor = theme.colorScheme.secondary;
+  final accentColor = isDark ? goldColor : theme.colorScheme.primary;
 
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     builder: (sheetContext) {
-      final theme = Theme.of(sheetContext);
-      final goldColor = theme.brightness == Brightness.dark
-          ? const Color(0xFFD4AF37)
-          : const Color(0xFFC5A059);
+      return _EditNameSheetContent(
+        controller: controller,
+        accentColor: accentColor,
+      );
+    },
+  );
+}
 
-      return SafeArea(
-        child: Directionality(
-          textDirection: TextDirection.rtl,
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              20.w,
-              18.h,
-              20.w,
-              MediaQuery.viewInsetsOf(sheetContext).bottom + 22.h,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'تعديل الاسم',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+void _showLanguageDialog(BuildContext context, AppController controller) {
+  final theme = Theme.of(context);
+  final isDark = theme.brightness == Brightness.dark;
+  final goldColor = theme.colorScheme.secondary;
+  final accentColor = isDark ? goldColor : theme.colorScheme.primary;
+
+  showDialog<void>(
+    context: context,
+    builder: (dialogContext) {
+      final dialogBg = isDark ? const Color(0xFF0D1512) : theme.colorScheme.surface;
+      return Dialog(
+        backgroundColor: dialogBg,
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28.r),
+          side: BorderSide(
+            color: isDark
+                ? goldColor.withValues(alpha: 0.3)
+                : theme.colorScheme.primary.withValues(alpha: 0.15),
+            width: 1.5,
+          ),
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 26.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.all(14.r),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: accentColor.withValues(alpha: isDark ? 0.15 : 0.12),
+                  border: Border.all(color: accentColor.withValues(alpha: 0.3), width: 1.5),
                 ),
-                SizedBox(height: 14.h),
-                TextField(
-                  controller: nameController,
-                  autofocus: true,
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) async {
-                    await controller.setUserName(nameController.text);
-                    if (sheetContext.mounted) Navigator.pop(sheetContext);
+                child: Icon(
+                  Icons.translate,
+                  color: accentColor,
+                  size: 32.r,
+                ),
+              ),
+              SizedBox(height: 18.h),
+              Text(
+                'select_language'.tr,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20.sp,
+                  color: isDark ? Colors.white : theme.textTheme.titleLarge?.color,
+                ),
+              ),
+              SizedBox(height: 20.h),
+              Obx(() {
+                final isArabic = controller.currentLanguage.value == 'ar';
+                final bg = isArabic
+                    ? accentColor.withValues(alpha: isDark ? 0.15 : 0.08)
+                    : Colors.transparent;
+                final borderCol = isArabic
+                    ? accentColor
+                    : (isDark ? goldColor.withValues(alpha: 0.15) : theme.colorScheme.onSurface.withValues(alpha: 0.08));
+                
+                return InkWell(
+                  onTap: () {
+                    if (!isArabic) {
+                      controller.toggleLanguage();
+                    }
+                    Navigator.pop(dialogContext);
                   },
-                  decoration: InputDecoration(
-                    labelText: 'اسمك',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14.r),
+                  borderRadius: BorderRadius.circular(16.r),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                    decoration: BoxDecoration(
+                      color: bg,
+                      borderRadius: BorderRadius.circular(16.r),
+                      border: Border.all(color: borderCol, width: isArabic ? 2.0 : 1.0),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14.r),
-                      borderSide: BorderSide(color: goldColor),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline,
+                          color: isArabic ? accentColor : (isDark ? Colors.white30 : theme.disabledColor.withValues(alpha: 0.4)),
+                          size: 24.r,
+                        ),
+                        SizedBox(width: 14.w),
+                        Text(
+                          'arabic'.tr,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontWeight: isArabic ? FontWeight.bold : FontWeight.w500,
+                            color: isArabic ? accentColor : (isDark ? Colors.white70 : theme.textTheme.bodyLarge?.color),
+                            fontSize: 16.sp,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (isArabic)
+                          Icon(
+                            Icons.check,
+                            color: accentColor,
+                            size: 20.r,
+                          ),
+                      ],
                     ),
                   ),
-                ),
-                SizedBox(height: 16.h),
-                FilledButton(
-                  onPressed: () async {
-                    await controller.setUserName(nameController.text);
-                    if (sheetContext.mounted) Navigator.pop(sheetContext);
+                );
+              }),
+              SizedBox(height: 12.h),
+              Obx(() {
+                final isEnglish = controller.currentLanguage.value == 'en';
+                final bg = isEnglish
+                    ? accentColor.withValues(alpha: isDark ? 0.15 : 0.08)
+                    : Colors.transparent;
+                final borderCol = isEnglish
+                    ? accentColor
+                    : (isDark ? goldColor.withValues(alpha: 0.15) : theme.colorScheme.onSurface.withValues(alpha: 0.08));
+                
+                return InkWell(
+                  onTap: () {
+                    if (!isEnglish) {
+                      controller.toggleLanguage();
+                    }
+                    Navigator.pop(dialogContext);
                   },
-                  child: const Text('حفظ'),
-                ),
-              ],
-            ),
+                  borderRadius: BorderRadius.circular(16.r),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                    decoration: BoxDecoration(
+                      color: bg,
+                      borderRadius: BorderRadius.circular(16.r),
+                      border: Border.all(color: borderCol, width: isEnglish ? 2.0 : 1.0),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline,
+                          color: isEnglish ? accentColor : (isDark ? Colors.white30 : theme.disabledColor.withValues(alpha: 0.4)),
+                          size: 24.r,
+                        ),
+                        SizedBox(width: 14.w),
+                        Text(
+                          'english'.tr,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontWeight: isEnglish ? FontWeight.bold : FontWeight.w500,
+                            color: isEnglish ? accentColor : (isDark ? Colors.white70 : theme.textTheme.bodyLarge?.color),
+                            fontSize: 16.sp,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (isEnglish)
+                          Icon(
+                            Icons.check,
+                            color: accentColor,
+                            size: 20.r,
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
           ),
         ),
       );
     },
-  ).whenComplete(nameController.dispose);
+  );
+}
+
+class _EditNameSheetContent extends StatefulWidget {
+  const _EditNameSheetContent({
+    required this.controller,
+    required this.accentColor,
+  });
+
+  final AppController controller;
+  final Color accentColor;
+
+  @override
+  State<_EditNameSheetContent> createState() => _EditNameSheetContentState();
+}
+
+class _EditNameSheetContentState extends State<_EditNameSheetContent> {
+  late final TextEditingController _nameController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.controller.userName.value);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            20.w,
+            18.h,
+            20.w,
+            MediaQuery.viewInsetsOf(context).bottom + 22.h,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'تعديل الاسم',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 14.h),
+              TextField(
+                controller: _nameController,
+                autofocus: true,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) async {
+                  final navigator = Navigator.of(context);
+                  await widget.controller.setUserName(_nameController.text);
+                  navigator.pop();
+                },
+                decoration: InputDecoration(
+                  labelText: 'اسمك',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14.r),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14.r),
+                    borderSide: BorderSide(color: widget.accentColor),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16.h),
+              FilledButton(
+                onPressed: () async {
+                  final navigator = Navigator.of(context);
+                  await widget.controller.setUserName(_nameController.text);
+                  navigator.pop();
+                },
+                child: const Text('حفظ'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _SettingsCard extends StatelessWidget {
@@ -297,6 +678,7 @@ class _SettingsCard extends StatelessWidget {
     required this.goldColor,
     required this.trailing,
     this.subtitle,
+    this.onTap,
   });
 
   final IconData icon;
@@ -304,26 +686,44 @@ class _SettingsCard extends StatelessWidget {
   final String? subtitle;
   final Color goldColor;
   final Widget trailing;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: EdgeInsets.all(16.r),
+    final isDark = theme.brightness == Brightness.dark;
+    final accentColor = isDark ? goldColor : theme.colorScheme.primary;
+
+    final card = Container(
+      constraints: BoxConstraints(minHeight: 78.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
       decoration: BoxDecoration(
         color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: goldColor.withValues(alpha: 0.2)),
+        border: Border.all(
+          color: isDark
+              ? goldColor.withValues(alpha: 0.18)
+              : theme.colorScheme.primary.withValues(alpha: 0.12),
+        ),
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: theme.shadowColor.withValues(alpha: 0.03),
+                  blurRadius: 10.r,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.all(10.r),
             decoration: BoxDecoration(
-              color: goldColor.withValues(alpha: 0.1),
+              color: accentColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(14.r),
             ),
-            child: Icon(icon, color: goldColor, size: 22.r),
+            child: Icon(icon, color: accentColor, size: 22.r),
           ),
           SizedBox(width: 14.w),
           Expanded(
@@ -337,116 +737,31 @@ class _SettingsCard extends StatelessWidget {
                   ),
                 ),
                 if (subtitle != null)
-                  Text(subtitle!, style: theme.textTheme.bodySmall),
+                  Text(
+                    subtitle!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: isDark ? theme.textTheme.bodySmall?.color : theme.colorScheme.primary.withValues(alpha: 0.7),
+                    ),
+                  ),
               ],
             ),
           ),
           SizedBox(width: 8.w),
-          Flexible(child: trailing),
+          trailing,
         ],
       ),
     );
-  }
-}
 
-class _DhikrOptionsCard extends StatelessWidget {
-  const _DhikrOptionsCard({
-    required this.icon,
-    required this.title,
-    required this.goldColor,
-    required this.child,
-    this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final Color goldColor;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: goldColor.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(10.r),
-                decoration: BoxDecoration(
-                  color: goldColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(14.r),
-                ),
-                child: Icon(icon, color: goldColor, size: 22.r),
-              ),
-              SizedBox(width: 14.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (subtitle != null)
-                      Text(subtitle!, style: theme.textTheme.bodySmall),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 14.h),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _ChoiceChipButton extends StatelessWidget {
-  const _ChoiceChipButton({
-    required this.label,
-    required this.selected,
-    required this.enabled,
-    required this.goldColor,
-    required this.onSelected,
-  });
-
-  final String label;
-  final bool selected;
-  final bool enabled;
-  final Color goldColor;
-  final VoidCallback onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: enabled ? (_) => onSelected() : null,
-      selectedColor: goldColor.withValues(alpha: 0.22),
-      disabledColor: theme.disabledColor.withValues(alpha: 0.08),
-      labelStyle: theme.textTheme.bodySmall?.copyWith(
-        color: enabled
-            ? (selected ? goldColor : theme.colorScheme.onSurface)
-            : theme.disabledColor,
-        fontWeight: selected ? FontWeight.bold : FontWeight.w500,
-      ),
-      side: BorderSide(
-        color: selected ? goldColor : goldColor.withValues(alpha: 0.22),
-      ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-    );
+    if (onTap != null) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20.r),
+          onTap: onTap,
+          child: card,
+        ),
+      );
+    }
+    return card;
   }
 }

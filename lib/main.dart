@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:isolate';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
@@ -23,8 +24,29 @@ import 'services/quran_library_bootstrap.dart';
 import 'services/quran_service.dart';
 import 'services/storage_service.dart';
 
+import 'package:just_audio_background/just_audio_background.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Check if we are running in the background isolate
+  final isBackground = Isolate.current.debugName != null && Isolate.current.debugName != 'main';
+  if (isBackground) {
+    debugPrint('Running in background isolate (${Isolate.current.debugName}), running empty App.');
+    runApp(const SizedBox.shrink());
+    return;
+  }
+
+  try {
+    await JustAudioBackground.init(
+      androidNotificationChannelId: 'com.ryanheise.audioservice.notification',
+      androidNotificationChannelName: 'تلاوة القرآن الكريم',
+      androidNotificationOngoing: false,
+      androidShowNotificationBadge: true,
+    );
+  } catch (e) {
+    debugPrint('Error initializing JustAudioBackground: $e');
+  }
 
   // تثبيت التطبيق في الوضع الرأسي فقط
   await SystemChrome.setPreferredOrientations([
@@ -77,19 +99,28 @@ class MyApp extends StatelessWidget {
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (_, _) => Obx(
-        () => GetMaterialApp(
-          title: 'Hayah',
-          debugShowCheckedModeBanner: false,
-          translations: AppTranslations(),
-          locale: Locale(controller.currentLanguage.value),
-          fallbackLocale: const Locale('ar'),
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.nightTheme,
-          themeMode: controller.isNightMode.value
-              ? ThemeMode.dark
-              : ThemeMode.light,
-          home: const StartupSplash(),
-        ),
+        () {
+          final isNight = controller.isNightMode.value;
+          SystemChrome.setSystemUIOverlayStyle(
+            SystemUiOverlayStyle(
+              statusBarColor: isNight ? AppTheme.statusBarDark : AppTheme.statusBarLight,
+              statusBarIconBrightness: isNight ? Brightness.light : Brightness.dark,
+              statusBarBrightness: isNight ? Brightness.dark : Brightness.light,
+            ),
+          );
+
+          return GetMaterialApp(
+            title: 'Hayah',
+            debugShowCheckedModeBanner: false,
+            translations: AppTranslations(),
+            locale: Locale(controller.currentLanguage.value),
+            fallbackLocale: const Locale('ar'),
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.nightTheme,
+            themeMode: isNight ? ThemeMode.dark : ThemeMode.light,
+            home: const StartupSplash(),
+          );
+        },
       ),
     );
   }
@@ -113,6 +144,14 @@ class _StartupSplashState extends State<StartupSplash> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _timer = Timer(const Duration(milliseconds: 1800), () {
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+        final isNight = Get.find<AppController>().isNightMode.value;
+        SystemChrome.setSystemUIOverlayStyle(
+          SystemUiOverlayStyle(
+            statusBarColor: isNight ? AppTheme.statusBarDark : AppTheme.statusBarLight,
+            statusBarIconBrightness: isNight ? Brightness.light : Brightness.dark,
+            statusBarBrightness: isNight ? Brightness.dark : Brightness.light,
+          ),
+        );
         if (mounted) {
           setState(() => _showApp = true);
         }
@@ -124,6 +163,14 @@ class _StartupSplashState extends State<StartupSplash> {
   void dispose() {
     _timer?.cancel();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    final isNight = Get.find<AppController>().isNightMode.value;
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: isNight ? AppTheme.statusBarDark : AppTheme.statusBarLight,
+        statusBarIconBrightness: isNight ? Brightness.light : Brightness.dark,
+        statusBarBrightness: isNight ? Brightness.dark : Brightness.light,
+      ),
+    );
     super.dispose();
   }
 
@@ -274,18 +321,40 @@ class MainRouter extends StatelessWidget {
     final AppController controller = Get.find<AppController>();
 
     return Obx(() {
+      final isNight = controller.isNightMode.value;
+      
+      final overlayStyle = SystemUiOverlayStyle(
+        statusBarColor: isNight ? AppTheme.statusBarDark : AppTheme.statusBarLight,
+        statusBarIconBrightness: isNight ? Brightness.light : Brightness.dark,
+        statusBarBrightness: isNight ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: isNight ? Brightness.light : Brightness.dark,
+      );
+
+      Widget child;
       switch (controller.activePageIndex.value) {
         case 1:
-          return const SalatPage();
+          child = const SalatPage();
+          break;
         case 2:
-          return const QuranPage();
+          child = const QuranPage();
+          break;
         case 3:
-          return const SunnahPage();
+          child = const SunnahPage();
+          break;
         case 5:
-          return const ProfilePage();
+          child = const ProfilePage();
+          break;
         default:
-          return const HomePage();
+          child = const HomePage();
+          break;
       }
+
+
+      return AnnotatedRegion<SystemUiOverlayStyle>(
+        value: overlayStyle,
+        child: child,
+      );
     });
   }
 }

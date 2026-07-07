@@ -602,4 +602,15 @@ class AudioDownloadService extends GetxService {
     } catch (_) {}
     return downloaded;
   }
+
+  // حذف كافة الملفات المحملة لقارئ معين
+  Future<void> deleteDownloadedReciter(String reciterKey) async {
+    try {
+      final path = await _localPath;
+      final reciterDir = Directory('$path/reciter_audio/$reciterKey');
+      if (await reciterDir.exists()) {
+        await reciterDir.delete(recursive: true);
+      }
+    } catch (_) {}
+  }
 }

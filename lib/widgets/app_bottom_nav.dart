@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../controllers/app_controller.dart';
+import '../theme/app_theme.dart';
 
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({super.key, required this.currentIndex});
@@ -12,13 +13,14 @@ class AppBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<AppController>();
-    final theme = Theme.of(context);
-    final goldColor = theme.brightness == Brightness.dark
-        ? const Color(0xFFD4AF37)
-        : const Color(0xFFC5A059);
 
     return Obx(() {
       final visible = controller.isNavBarVisible.value;
+      final isNight = controller.isNightMode.value;
+      final goldColor = isNight
+          ? const Color(0xFFD4AF37)
+          : const Color(0xFFC5A059);
+
       return AnimatedSlide(
         duration: const Duration(milliseconds: 280),
         curve: Curves.easeInOut,
@@ -28,7 +30,7 @@ class AppBottomNav extends StatelessWidget {
           opacity: visible ? 1.0 : 0.0,
           child: Container(
             decoration: BoxDecoration(
-              color: theme.scaffoldBackgroundColor.withValues(alpha: 0.96),
+              color: isNight ? AppTheme.appBarDark : AppTheme.appBarLight,
               border: Border(
                 top: BorderSide(color: goldColor.withValues(alpha: 0.14)),
               ),
@@ -45,6 +47,7 @@ class AppBottomNav extends StatelessWidget {
                       label: 'home'.tr,
                       active: currentIndex == 0,
                       goldColor: goldColor,
+                      isDark: isNight,
                       onTap: () => controller.navigateToPage(0),
                     ),
                     _NavItem(
@@ -52,6 +55,7 @@ class AppBottomNav extends StatelessWidget {
                       label: 'salat'.tr,
                       active: currentIndex == 1,
                       goldColor: goldColor,
+                      isDark: isNight,
                       onTap: () => controller.navigateToPage(1),
                     ),
                     _NavItem(
@@ -59,6 +63,7 @@ class AppBottomNav extends StatelessWidget {
                       label: 'quran'.tr,
                       active: currentIndex == 2,
                       goldColor: goldColor,
+                      isDark: isNight,
                       onTap: () => controller.navigateToPage(2),
                     ),
                     _NavItem(
@@ -66,6 +71,7 @@ class AppBottomNav extends StatelessWidget {
                       label: 'sunnah'.tr,
                       active: currentIndex == 3,
                       goldColor: goldColor,
+                      isDark: isNight,
                       onTap: () => controller.navigateToPage(3),
                     ),
                     _NavItem(
@@ -73,6 +79,7 @@ class AppBottomNav extends StatelessWidget {
                       label: 'profile'.tr,
                       active: currentIndex == 5,
                       goldColor: goldColor,
+                      isDark: isNight,
                       onTap: () => controller.navigateToPage(5),
                     ),
                   ],
@@ -92,6 +99,7 @@ class _NavItem extends StatelessWidget {
     required this.label,
     required this.active,
     required this.goldColor,
+    required this.isDark,
     required this.onTap,
   });
 
@@ -99,17 +107,16 @@ class _NavItem extends StatelessWidget {
   final String label;
   final bool active;
   final Color goldColor;
+  final bool isDark;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     
-    // اللون النشط أبيض بالكامل للداكن وأسود للفاتح، وغير النشط أبيض/أسود بشفافية 50%
+    // Active: white for dark mode, primary green for light mode. Inactive: transparent white for dark, transparent green for light.
     final Color itemColor = active
-        ? (isDark ? Colors.white : Colors.black)
-        : (isDark ? Colors.white.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.5));
+        ? (isDark ? Colors.white : AppTheme.primaryLight)
+        : (isDark ? Colors.white.withValues(alpha: 0.5) : AppTheme.primaryLight.withValues(alpha: 0.45));
 
     return InkWell(
       onTap: onTap,
@@ -143,7 +150,7 @@ class _NavItem extends StatelessWidget {
                 width: active ? 16.w : 4.w,
                 height: 3.h,
                 decoration: BoxDecoration(
-                  color: active ? goldColor : Colors.transparent,
+                  color: active ? (isDark ? goldColor : AppTheme.primaryLight) : Colors.transparent,
                   borderRadius: BorderRadius.circular(2.r),
                 ),
               ),

@@ -7,6 +7,7 @@ import '../controllers/prayer_controller.dart';
 import '../services/notification_service.dart';
 import '../services/storage_service.dart';
 import '../static/mysnakbar.dart';
+import '../services/audio_service.dart';
 
 class AppController extends GetxController {
   AppController(this._storage);
@@ -257,6 +258,23 @@ class AppController extends GetxController {
   }
 
   void navigateToPage(int index) {
+    final context = Get.context;
+    if (context != null) {
+      try {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      } catch (e) {
+        debugPrint('Error popping routes in navigateToPage: $e');
+      }
+    }
+    if (index != 2) {
+      try {
+        if (Get.isRegistered<QuranAudioService>()) {
+          Get.find<QuranAudioService>().stop();
+        }
+      } catch (e) {
+        debugPrint('Error stopping audio in navigateToPage: $e');
+      }
+    }
     activePageIndex.value = index;
   }
 
