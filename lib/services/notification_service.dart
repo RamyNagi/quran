@@ -66,10 +66,21 @@ class NotificationService {
   }
 
   bool isPrayerEnabled(String prayerKey) =>
-      _storage.read<bool>('$_enabledPrefix$prayerKey', true);
+      getPrayerNotificationMode(prayerKey) != 'disabled';
 
   Future<void> setPrayerEnabled(String prayerKey, bool enabled) =>
-      _storage.write('$_enabledPrefix$prayerKey', enabled);
+      setPrayerNotificationMode(prayerKey, enabled ? 'default' : 'disabled');
+
+  String getPrayerNotificationMode(String prayerKey) {
+    final oldEnabled = _storage.read<bool>('$_enabledPrefix$prayerKey', true);
+    if (oldEnabled == false) return 'disabled';
+    return _storage.read<String>('notification_mode_$prayerKey', 'default');
+  }
+
+  Future<void> setPrayerNotificationMode(String prayerKey, String mode) async {
+    await _storage.write('notification_mode_$prayerKey', mode);
+    await _storage.write('$_enabledPrefix$prayerKey', mode != 'disabled');
+  }
 
   Future<void> scheduleDhikrReminders({
     required DhikrReminderMode mode,
@@ -160,7 +171,8 @@ class NotificationService {
     final scheduleMode = await _scheduleMode(preferExact: true);
     for (var index = 0; index < day.prayers.length; index++) {
       final prayer = day.prayers[index];
-      if (!isPrayerEnabled(prayer.key)) continue;
+      final mode = getPrayerNotificationMode(prayer.key);
+      if (mode == 'disabled') continue;
       var scheduledTime = prayer.time;
       if (scheduledTime.isBefore(DateTime.now())) {
         scheduledTime = scheduledTime.add(const Duration(days: 1));
@@ -170,19 +182,79 @@ class NotificationService {
         'prayer_times'.tr,
         '${prayer.labelKey.tr} - ${'prayer_notification_body'.tr}',
         tz.TZDateTime.from(scheduledTime, tz.local),
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'hayah_prayers',
-            'Prayer reminders',
-            channelDescription: 'Daily local prayer time reminders',
-            importance: Importance.high,
-            priority: Priority.high,
-          ),
-          iOS: DarwinNotificationDetails(),
-        ),
+        _buildNotificationDetails(mode, prayer.labelKey.tr),
         androidScheduleMode: scheduleMode,
         payload: 'prayer:${prayer.key}',
       );
+    }
+  }
+
+  NotificationDetails _buildNotificationDetails(String mode, String prayerName) {
+    switch (mode) {
+      case 'silent':
+        return const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'hayah_prayers_silent',
+            'Silent prayer reminders',
+            channelDescription: 'Daily silent prayer time reminders',
+            importance: Importance.low,
+            priority: Priority.low,
+            playSound: false,
+            enableVibration: false,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentSound: false,
+            presentAlert: true,
+            presentBadge: true,
+          ),
+        );
+      case 'makkah':
+        return const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'hayah_prayers_makkah',
+            'Makkah Adhan reminders',
+            channelDescription: 'Daily prayer time reminders with Makkah Adhan',
+            importance: Importance.max,
+            priority: Priority.high,
+            playSound: true,
+            sound: RawResourceAndroidNotificationSound('adhan_makkah'),
+          ),
+          iOS: DarwinNotificationDetails(
+            sound: 'adhan_makkah.mp3',
+            presentSound: true,
+          ),
+        );
+      case 'madinah':
+        return const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'hayah_prayers_madinah',
+            'Madinah Adhan reminders',
+            channelDescription: 'Daily prayer time reminders with Madinah Adhan',
+            importance: Importance.max,
+            priority: Priority.high,
+            playSound: true,
+            sound: RawResourceAndroidNotificationSound('adhan_madinah'),
+          ),
+          iOS: DarwinNotificationDetails(
+            sound: 'adhan_madinah.mp3',
+            presentSound: true,
+          ),
+        );
+      case 'default':
+      default:
+        return const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'hayah_prayers_default',
+            'Default prayer reminders',
+            channelDescription: 'Daily default prayer time reminders',
+            importance: Importance.high,
+            priority: Priority.high,
+            playSound: true,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentSound: true,
+          ),
+        );
     }
   }
 

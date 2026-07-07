@@ -71,6 +71,19 @@ class PrayerController extends GetxController {
     prayerDay.refresh();
   }
 
+  String getNotificationMode(String prayerKey) =>
+      _notificationService.getPrayerNotificationMode(prayerKey);
+
+  Future<void> setNotificationMode(String prayerKey, String mode) async {
+    await _notificationService.setPrayerNotificationMode(prayerKey, mode);
+    final day = prayerDay.value;
+    if (day != null) await _notificationService.schedulePrayerDay(day);
+    if (Get.isRegistered<AppController>()) {
+      await Get.find<AppController>().rescheduleDhikrReminders();
+    }
+    prayerDay.refresh();
+  }
+
   String formatTime(DateTime time) => DateFormat('HH:mm').format(time);
 
   String countdownText() {

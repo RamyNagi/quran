@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_qiblah/flutter_qiblah.dart';
 import 'package:get/get.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 
 import '../controllers/prayer_controller.dart';
 import '../services/qibla_service.dart';
+import '../theme/app_theme.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/arabesque_painter.dart';
 
@@ -100,10 +103,21 @@ class SalatPage extends StatelessWidget {
                         name: prayer.labelKey.tr,
                         time: controller.formatTime(prayer.time),
                         active: prayer.key == day.nextPrayerKey,
-                        enabled: controller.notificationEnabled(prayer.key),
+                        mode: controller.getNotificationMode(prayer.key),
                         goldColor: goldColor,
-                        onChanged: (value) => controller
-                            .setNotificationEnabled(prayer.key, value),
+                        onTapSettings: () {
+                          showModalBottomSheet<void>(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            isScrollControlled: true,
+                            builder: (sheetContext) => _AlertSettingsSheet(
+                              prayerKey: prayer.key,
+                              prayerName: prayer.labelKey.tr,
+                              controller: controller,
+                              goldColor: goldColor,
+                            ),
+                          );
+                        },
                       ),
                       SizedBox(height: 10.h),
                     ],
@@ -529,17 +543,17 @@ class _PrayerRow extends StatelessWidget {
     required this.name,
     required this.time,
     required this.active,
-    required this.enabled,
+    required this.mode,
     required this.goldColor,
-    required this.onChanged,
+    required this.onTapSettings,
   });
 
   final String name;
   final String time;
   final bool active;
-  final bool enabled;
+  final String mode;
   final Color goldColor;
-  final ValueChanged<bool> onChanged;
+  final VoidCallback onTapSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -548,6 +562,28 @@ class _PrayerRow extends StatelessWidget {
     final activeColor = isDark ? goldColor : theme.colorScheme.primary;
     final activeBg = isDark ? goldColor.withValues(alpha: 0.08) : theme.colorScheme.primary.withValues(alpha: 0.06);
     final activeBorder = isDark ? goldColor.withValues(alpha: 0.35) : theme.colorScheme.primary.withValues(alpha: 0.3);
+
+    IconData getModeIcon() {
+      switch (mode) {
+        case 'disabled':
+          return Icons.notifications_off_rounded;
+        case 'silent':
+          return Icons.volume_off_rounded;
+        case 'makkah':
+        case 'madinah':
+          return Icons.volume_up_rounded;
+        case 'default':
+        default:
+          return Icons.notifications_active_rounded;
+      }
+    }
+
+    Color getModeColor(Color fallbackPrimary) {
+      if (mode == 'disabled') {
+        return Colors.grey.withValues(alpha: 0.5);
+      }
+      return fallbackPrimary;
+    }
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
@@ -588,10 +624,13 @@ class _PrayerRow extends StatelessWidget {
             ),
           ),
           SizedBox(width: 8.w),
-          Switch.adaptive(
-            value: enabled,
-            activeColor: activeColor,
-            onChanged: onChanged,
+          IconButton(
+            icon: Icon(
+              getModeIcon(),
+              color: active ? activeColor : getModeColor(isDark ? goldColor : theme.colorScheme.primary),
+              size: 24.r,
+            ),
+            onPressed: onTapSettings,
           ),
         ],
       ),
@@ -623,6 +662,218 @@ class _InfoBanner extends StatelessWidget {
           color: isDark ? theme.textTheme.bodySmall?.color : theme.colorScheme.primary,
           fontWeight: FontWeight.w500,
         ),
+      ),
+    );
+  }
+}
+
+class _AlertSettingsSheet extends StatefulWidget {
+  const _AlertSettingsSheet({
+    required this.prayerKey,
+    required this.prayerName,
+    required this.controller,
+    required this.goldColor,
+  });
+
+  final String prayerKey;
+  final String prayerName;
+  final PrayerController controller;
+  final Color goldColor;
+
+  @override
+  State<_AlertSettingsSheet> createState() => _AlertSettingsSheetState();
+}
+
+class _AlertSettingsSheetState extends State<_AlertSettingsSheet> {
+  late String _selectedMode;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  String? _playingPreview; // 'makkah', 'madinah' or null
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedMode = widget.controller.getNotificationMode(widget.prayerKey);
+    
+    // Listen to player state to reset playingPreview when audio completes
+    _audioPlayer.playerStateStream.listen((state) {
+      if (state.processingState == ProcessingState.completed) {
+        if (mounted) {
+          setState(() {
+            _playingPreview = null;
+          });
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  Future<void> _togglePreview(String type) async {
+    if (_playingPreview == type) {
+      await _audioPlayer.stop();
+      setState(() {
+        _playingPreview = null;
+      });
+    } else {
+      await _audioPlayer.stop();
+      setState(() {
+        _playingPreview = type;
+      });
+      try {
+        final path = type == 'makkah' 
+            ? 'assets/sounds/adhan_makkah.mp3' 
+            : 'assets/sounds/adhan_madinah.mp3';
+        await _audioPlayer.setAudioSource(
+          AudioSource.asset(
+            path,
+            tag: MediaItem(
+              id: 'adhan_$type',
+              title: type == 'makkah' ? 'notification_mode_makkah'.tr : 'notification_mode_madinah'.tr,
+              album: 'hayah'.tr,
+            ),
+          ),
+        );
+        _audioPlayer.play();
+      } catch (e) {
+        debugPrint("Error playing preview: $e");
+        setState(() {
+          _playingPreview = null;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = isDark ? widget.goldColor : theme.colorScheme.primary;
+    final textColor = isDark ? AppTheme.textNight : AppTheme.textLight;
+    final cardColor = isDark ? AppTheme.surfaceNight : AppTheme.surfaceLight;
+
+    final modes = [
+      {'key': 'default', 'label': 'notification_mode_default'.tr, 'icon': Icons.notifications_active_rounded},
+      {'key': 'makkah', 'label': 'notification_mode_makkah'.tr, 'icon': Icons.volume_up_rounded, 'hasPreview': true},
+      {'key': 'madinah', 'label': 'notification_mode_madinah'.tr, 'icon': Icons.volume_up_rounded, 'hasPreview': true},
+      {'key': 'silent', 'label': 'notification_mode_silent'.tr, 'icon': Icons.volume_off_rounded},
+      {'key': 'disabled', 'label': 'notification_mode_disabled'.tr, 'icon': Icons.notifications_off_rounded},
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+        border: Border(
+          top: BorderSide(
+            color: isDark ? const Color(0xFF3A4E47) : widget.goldColor.withValues(alpha: 0.3),
+            width: 2.w,
+          ),
+        ),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF3A4E47) : Colors.grey[300],
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+          ),
+          SizedBox(height: 16.h),
+          Text(
+            '${'customize_alert'.tr}: ${widget.prayerName}',
+            style: TextStyle(
+              fontSize: 17.sp,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+          SizedBox(height: 16.h),
+          ...modes.map((m) {
+            final isSelected = _selectedMode == m['key'];
+            final hasPreview = m['hasPreview'] == true;
+            final keyStr = m['key'] as String;
+            final isCurrentPlaying = _playingPreview == keyStr;
+
+            return Container(
+              margin: EdgeInsets.only(bottom: 8.h),
+              decoration: BoxDecoration(
+                color: isSelected 
+                    ? primaryColor.withValues(alpha: 0.06) 
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(
+                  color: isSelected 
+                      ? primaryColor.withValues(alpha: 0.3) 
+                      : Colors.transparent,
+                  width: 1,
+                ),
+              ),
+              child: ListTile(
+                onTap: () {
+                  setState(() {
+                    _selectedMode = keyStr;
+                  });
+                  widget.controller.setNotificationMode(widget.prayerKey, keyStr);
+                },
+                leading: Icon(
+                  m['icon'] as IconData,
+                  color: isSelected ? primaryColor : textColor.withValues(alpha: 0.6),
+                ),
+                title: Text(
+                  m['label'] as String,
+                  style: TextStyle(
+                    color: textColor,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontSize: 14.sp,
+                  ),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (hasPreview) ...[
+                      IconButton(
+                        onPressed: () => _togglePreview(keyStr),
+                        icon: Icon(
+                          isCurrentPlaying 
+                              ? Icons.pause_circle_filled_rounded 
+                              : Icons.play_circle_filled_rounded,
+                          color: primaryColor,
+                          size: 28.r,
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                    ],
+                    Radio<String>(
+                      value: keyStr,
+                      groupValue: _selectedMode,
+                      activeColor: primaryColor,
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() {
+                            _selectedMode = val;
+                          });
+                          widget.controller.setNotificationMode(widget.prayerKey, val);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+          SizedBox(height: 12.h),
+        ],
       ),
     );
   }
