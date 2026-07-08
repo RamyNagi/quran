@@ -180,7 +180,11 @@ class _NextPrayerCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.location_on, color: goldColor, size: 18.r),
+              Icon(
+                Icons.location_on,
+                color: isDark ? goldColor : theme.colorScheme.onPrimary.withValues(alpha: 0.8),
+                size: 18.r,
+              ),
               SizedBox(width: 8.w),
               Expanded(
                 child: Text(
@@ -196,9 +200,9 @@ class _NextPrayerCard extends StatelessWidget {
           ),
           SizedBox(height: 18.h),
           Text(
-            'next_prayer'.tr, 
+            'next_prayer'.tr,
             style: theme.textTheme.labelMedium?.copyWith(
-              color: goldColor,
+              color: isDark ? goldColor : theme.colorScheme.onPrimary.withValues(alpha: 0.85),
             ),
           ),
           SizedBox(height: 6.h),
@@ -237,12 +241,15 @@ class _NextPrayerCard extends StatelessWidget {
             onTap: null,
             child: Row(
               children: [
-                Icon(Icons.explore, color: goldColor),
+                Icon(
+                  Icons.explore,
+                  color: isDark ? goldColor : theme.colorScheme.onPrimary,
+                ),
                 SizedBox(width: 8.w),
                 Text(
                   '${'qibla_direction'.tr}: ${qibla.toStringAsFixed(1)}°',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: goldColor,
+                    color: isDark ? goldColor : theme.colorScheme.onPrimary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

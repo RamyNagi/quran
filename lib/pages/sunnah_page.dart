@@ -10,6 +10,7 @@ import '../services/storage_service.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/arabesque_painter.dart';
 import '../static/mysnakbar.dart';
+import '../static/mydialog.dart';
 
 class SunnahPage extends StatefulWidget {
   const SunnahPage({super.key});
@@ -22,11 +23,17 @@ class _SunnahPageState extends State<SunnahPage> {
   static const String _downloadKeyPrefix = 'sunnah_book_json_';
 
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   late final StorageService _storage;
   String _query = '';
+  String? _expandedHadithKey;
   final Set<String> _downloadedEditions = <String>{};
   final Set<String> _downloadingEditions = <String>{};
   final Map<String, List<_HadithEntry>> _hadithCache = {};
+
+  // Lazy-loading for global search results
+  List<_GlobalHadithResult> _cachedHadithResults = [];
+  int _visibleHadithCount = 30;
 
   static final List<_SunnahBook> _books = [
     _SunnahBook(
@@ -242,115 +249,189 @@ class _SunnahPageState extends State<SunnahPage> {
           .where((book) => _storage.contains(_downloadKey(book.editionId)))
           .map((book) => book.editionId),
     );
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 300.h) {
+      if (_visibleHadithCount < _cachedHadithResults.length) {
+        setState(() {
+          _visibleHadithCount = (_visibleHadithCount + 30)
+              .clamp(0, _cachedHadithResults.length);
+        });
+      }
+    }
+  }
+
+  void _setQuery(String value) {
+    final results = value.trim().isEmpty ? <_GlobalHadithResult>[] : _globalHadithResults(value);
+    setState(() {
+      _query = value;
+      _expandedHadithKey = null;
+      _cachedHadithResults = results;
+      _visibleHadithCount = 30;
+    });
   }
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _searchController.dispose();
+    FocusManager.instance.primaryFocus?.unfocus();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final goldColor = theme.brightness == Brightness.dark
-        ? const Color(0xFFD4AF37)
-        : const Color(0xFFC5A059);
+    final goldColor = theme.colorScheme.secondary;
     final results = _filteredBooks();
-    final hadithResults = _globalHadithResults();
     final hasSearch = _query.trim().isNotEmpty;
+    final visibleResults = _cachedHadithResults.take(_visibleHadithCount).toList();
+    final hasMore = _visibleHadithCount < _cachedHadithResults.length;
 
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        body: ArabesqueBackground(
-          child: SafeArea(
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 104.h),
-              physics: const BouncingScrollPhysics(),
-              children: [
-                _Header(goldColor: goldColor),
-                SizedBox(height: 18.h),
-                _SearchBox(
-                  controller: _searchController,
-                  goldColor: goldColor,
-                  onChanged: (value) => setState(() => _query = value),
-                  onClear: () {
-                    _searchController.clear();
-                    setState(() => _query = '');
-                  },
-                ),
-                SizedBox(height: 16.h),
-                _TopicChips(
-                  goldColor: goldColor,
-                  onSelected: (topic) {
-                    _searchController.text = topic;
-                    setState(() => _query = topic);
-                  },
-                ),
-                SizedBox(height: 22.h),
-                _FeaturedCard(
-                  goldColor: goldColor,
-                  downloaded: _isDownloaded(_books.first),
-                  downloading: _isDownloading(_books.first),
-                  onDownload: () => _downloadBook(_books.first),
-                  onRead: () => _openBook(_books.first),
-                ),
-                SizedBox(height: 22.h),
-                if (hasSearch) ...[
-                  _GlobalSearchSection(
-                    query: _query,
-                    results: hadithResults,
-                    downloadedCount: _downloadedEditions.length,
-                    goldColor: goldColor,
-                    onOpenResult: (result) =>
-                        _openBook(result.book, initialQuery: _query),
-                  ),
-                  SizedBox(height: 22.h),
-                ],
-                Row(
+    return PopScope(
+      canPop: !hasSearch,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (hasSearch) {
+          _searchController.clear();
+          _setQuery('');
+        }
+      },
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Scaffold(
+            body: ArabesqueBackground(
+              child: SafeArea(
+                child: ListView(
+                  controller: _scrollController,
+                  padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 104.h),
+                  physics: const BouncingScrollPhysics(),
                   children: [
-                    Icon(Icons.auto_awesome, color: goldColor, size: 18.r),
-                    SizedBox(width: 8.w),
-                    Text(
-                      _query.trim().isEmpty
-                          ? 'أشهر كتب السنة'
-                          : 'نتائج البحث الذكي',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: goldColor,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.bold,
+                    if (hasSearch) ...[
+                      Row(
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              _searchController.clear();
+                              _setQuery('');
+                            },
+                            icon: const Icon(Icons.arrow_back),
+                            color: goldColor,
+                          ),
+                          Expanded(
+                            child: Text(
+                              'نتائج البحث العام (${_cachedHadithResults.length} نتيجة)',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
+                      SizedBox(height: 12.h),
+                    ] else ...[
+                      _Header(goldColor: goldColor),
+                    ],
+                    SizedBox(height: 18.h),
+                    _SearchBox(
+                      controller: _searchController,
+                      goldColor: goldColor,
+                      onSubmitted: (value) {
+                        _setQuery(value);
+                      },
+                      onClear: () {
+                        _searchController.clear();
+                        _setQuery('');
+                      },
                     ),
-                    const Spacer(),
-                    Text(
-                      hasSearch
-                          ? '${results.length} كتاب مطابق'
-                          : '${results.length} كتاب',
-                      style: theme.textTheme.bodySmall,
-                    ),
+                    SizedBox(height: 16.h),
+                    if (hasSearch) ...[
+                      if (_downloadedEditions.isEmpty)
+                        _SearchHintCard(
+                          goldColor: goldColor,
+                          icon: Icons.download,
+                          title: 'حمّل كتابا أولا',
+                          text:
+                              'البحث العام داخل نصوص الأحاديث يعمل على الكتب المحملة داخل التطبيق.',
+                        )
+                      else if (_cachedHadithResults.isEmpty)
+                        _SearchHintCard(
+                          goldColor: goldColor,
+                          icon: Icons.manage_search,
+                          title: 'لا توجد أحاديث مطابقة',
+                          text: 'جرّب كلمة أخرى أو حمّل كتبا أكثر لتوسيع البحث.',
+                        )
+                      else ...[
+                        ..._buildGroupedSearchResults(
+                            visibleResults, goldColor, theme),
+                        if (hasMore)
+                          _LoadingMoreIndicator(goldColor: goldColor)
+                        else
+                          Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12.h),
+                            child: Center(
+                              child: Text(
+                                'انتهت النتائج',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ] else ...[
+                      Row(
+                        children: [
+                          Icon(Icons.auto_awesome, color: goldColor, size: 18.r),
+                          SizedBox(width: 8.w),
+                          Text(
+                            'أشهر كتب السنة',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: goldColor,
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            '${results.length} كتاب',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 12.h),
+                      if (results.isEmpty)
+                        _EmptySearch(goldColor: goldColor)
+                      else
+                        for (final book in results) ...[
+                          _BookCard(
+                            book: book,
+                            goldColor: goldColor,
+                            downloaded: _isDownloaded(book),
+                            downloading: _isDownloading(book),
+                            onDownload: () => _downloadBook(book),
+                            onRead: () => _openBook(book),
+                            onDelete: () => _deleteBook(book),
+                          ),
+                          SizedBox(height: 12.h),
+                        ],
+                    ],
                   ],
                 ),
-                SizedBox(height: 12.h),
-                if (results.isEmpty)
-                  _EmptySearch(goldColor: goldColor)
-                else
-                  for (final book in results) ...[
-                    _BookCard(
-                      book: book,
-                      goldColor: goldColor,
-                      downloaded: _isDownloaded(book),
-                      downloading: _isDownloading(book),
-                      onDownload: () => _downloadBook(book),
-                      onRead: () => _openBook(book),
-                    ),
-                    SizedBox(height: 12.h),
-                  ],
-              ],
+              ),
             ),
+            bottomNavigationBar: const AppBottomNav(currentIndex: 3),
           ),
         ),
-        bottomNavigationBar: const AppBottomNav(currentIndex: 3),
       ),
     );
   }
@@ -372,21 +453,25 @@ class _SunnahPageState extends State<SunnahPage> {
     return scored.map((entry) => entry.key).toList();
   }
 
-  List<_GlobalHadithResult> _globalHadithResults() {
-    final normalizedQuery = _normalize(_query);
+  List<_GlobalHadithResult> _globalHadithResults(String rawQuery) {
+    final normalizedQuery = _normalize(rawQuery);
     if (normalizedQuery.isEmpty || _downloadedEditions.isEmpty) {
       return const <_GlobalHadithResult>[];
     }
 
     final terms = _expandedSearchTerms(normalizedQuery);
-    final results = <_ScoredGlobalHadithResult>[];
+    // Collect top results PER BOOK so all downloaded books are represented
+    const maxPerBook = 20;
+    final allResults = <_GlobalHadithResult>[];
 
     for (final book in _books.where(_isDownloaded)) {
       final hadiths = _loadHadiths(book);
+      final bookScored = <_ScoredGlobalHadithResult>[];
+
       for (final hadith in hadiths) {
         final score = _scoreHadith(hadith, terms);
         if (score > 0) {
-          results.add(
+          bookScored.add(
             _ScoredGlobalHadithResult(
               result: _GlobalHadithResult(book: book, hadith: hadith),
               score: score,
@@ -394,14 +479,17 @@ class _SunnahPageState extends State<SunnahPage> {
           );
         }
       }
+
+      // Sort within this book and take top N
+      bookScored.sort((a, b) => b.score.compareTo(a.score));
+      allResults.addAll(
+        bookScored.take(maxPerBook).map((s) => s.result),
+      );
     }
 
-    results.sort((a, b) => b.score.compareTo(a.score));
-    return results
-        .take(30)
-        .map((scored) => scored.result)
-        .toList(growable: false);
+    return allResults;
   }
+
 
   List<_HadithEntry> _loadHadiths(_SunnahBook book) {
     final cached = _hadithCache[book.editionId];
@@ -550,10 +638,7 @@ class _SunnahPageState extends State<SunnahPage> {
   void _showDownloadError(_SunnahBook book, String message) {
     if (!mounted) return;
     setState(() => _downloadingEditions.remove(book.editionId));
-    MySnackbar.showError(
-      title: book.title,
-      message: message,
-    );
+    MySnackbar.showError(title: book.title, message: message);
   }
 
   void _openBook(_SunnahBook book, {String initialQuery = ''}) {
@@ -586,7 +671,96 @@ class _SunnahPageState extends State<SunnahPage> {
       );
     }
   }
+
+  void _deleteBook(_SunnahBook book) {
+    MyDialog.show<void>(
+      title: 'delete_book_title'.tr,
+      content: 'delete_book_confirm'.trParams({'book': book.title}),
+      confirmText: 'delete'.tr,
+      cancelText: 'cancel'.tr,
+      icon: Icons.delete_forever,
+      onConfirm: () async {
+        try {
+          await _storage.remove(_downloadKey(book.editionId));
+          await _storage.remove('${_downloadKey(book.editionId)}_count');
+          _hadithCache.remove(book.editionId);
+          setState(() {
+            _downloadedEditions.remove(book.editionId);
+          });
+          MySnackbar.showSuccess(
+            title: book.title,
+            message: 'download_deleted_success'.tr,
+          );
+        } catch (_) {
+          MySnackbar.showError(
+            title: book.title,
+            message: 'تعذر حذف الكتاب حالياً.',
+          );
+        }
+      },
+    );
+  }
+
+  List<Widget> _buildGroupedSearchResults(
+      List<_GlobalHadithResult> results, Color goldColor, ThemeData theme) {
+    final Map<_SunnahBook, List<_GlobalHadithResult>> grouped = {};
+    for (final res in results) {
+      grouped.putIfAbsent(res.book, () => []).add(res);
+    }
+
+    final widgets = <Widget>[];
+    var globalIndex = 0;
+
+    grouped.forEach((book, bookResults) {
+      widgets.add(
+        Padding(
+          padding: EdgeInsets.only(top: 14.h, bottom: 8.h),
+          child: Row(
+            children: [
+              Icon(Icons.bookmark_border, color: goldColor, size: 16.r),
+              SizedBox(width: 6.w),
+              Text(
+                book.title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: goldColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      for (final result in bookResults) {
+        globalIndex++;
+        final key = '${book.editionId}_${result.hadith.number}';
+        final isExpanded = _expandedHadithKey == key;
+
+        widgets.add(
+          _SearchResultCard(
+            result: result,
+            index: globalIndex,
+            isExpanded: isExpanded,
+            onToggle: () {
+              setState(() {
+                _expandedHadithKey = _expandedHadithKey == key ? null : key;
+              });
+            },
+            onRead: () => _openBook(result.book, initialQuery: _query),
+            goldColor: goldColor,
+          ),
+        );
+        widgets.add(SizedBox(height: 10.h));
+      }
+    });
+
+    return widgets;
+  }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Header
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _Header extends StatelessWidget {
   const _Header({required this.goldColor});
@@ -596,10 +770,25 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final headerBg = isDark
+        ? [
+            theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+            theme.colorScheme.primary.withValues(alpha: 0.3),
+          ]
+        : [
+            theme.colorScheme.primary.withValues(alpha: 0.05),
+            theme.colorScheme.primary.withValues(alpha: 0.12),
+          ];
+
     return Container(
       padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.42),
+        gradient: LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: headerBg,
+        ),
         borderRadius: BorderRadius.circular(24.r),
         border: Border.all(color: goldColor.withValues(alpha: 0.24)),
       ),
@@ -623,13 +812,16 @@ class _Header extends StatelessWidget {
                   'السنة الشريفة',
                   style: theme.textTheme.headlineLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
                 SizedBox(height: 8.h),
                 Text(
                   'مكتبة مختارة لأهم كتب الحديث مع بحث سريع حسب الموضوع أو اسم الكتاب.',
-                  style: theme.textTheme.bodySmall?.copyWith(height: 1.5),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    height: 1.5,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                  ),
                 ),
               ],
             ),
@@ -640,17 +832,21 @@ class _Header extends StatelessWidget {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Search Box (submit-based)
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _SearchBox extends StatelessWidget {
   const _SearchBox({
     required this.controller,
     required this.goldColor,
-    required this.onChanged,
+    required this.onSubmitted,
     required this.onClear,
   });
 
   final TextEditingController controller;
   final Color goldColor;
-  final ValueChanged<String> onChanged;
+  final ValueChanged<String> onSubmitted;
   final VoidCallback onClear;
 
   @override
@@ -658,22 +854,34 @@ class _SearchBox extends StatelessWidget {
     final theme = Theme.of(context);
     return TextField(
       controller: controller,
-      onChanged: onChanged,
       textInputAction: TextInputAction.search,
-      style: theme.textTheme.bodyMedium,
+      onSubmitted: onSubmitted,
+      style: theme.textTheme.bodyMedium?.copyWith(
+        color: theme.colorScheme.onSurface,
+      ),
       decoration: InputDecoration(
         hintText: 'ابحث عن موضوع: الصلاة، النية، البيوع...',
-        hintStyle: theme.textTheme.bodySmall,
+        hintStyle: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+        ),
         filled: true,
         fillColor: theme.cardTheme.color,
-        prefixIcon: Icon(Icons.search, color: goldColor),
-        suffixIcon: controller.text.isEmpty
-            ? null
-            : IconButton(
-                onPressed: onClear,
-                icon: const Icon(Icons.close),
-                color: goldColor,
-              ),
+        prefixIcon: IconButton(
+          onPressed: () => onSubmitted(controller.text),
+          icon: Icon(Icons.search, color: goldColor),
+        ),
+        suffixIcon: ValueListenableBuilder<TextEditingValue>(
+          valueListenable: controller,
+          builder: (context, value, _) {
+            return value.text.isEmpty
+                ? const SizedBox.shrink()
+                : IconButton(
+                    onPressed: onClear,
+                    icon: const Icon(Icons.close),
+                    color: goldColor,
+                  );
+          },
+        ),
         contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18.r),
@@ -692,323 +900,139 @@ class _SearchBox extends StatelessWidget {
   }
 }
 
-class _TopicChips extends StatelessWidget {
-  const _TopicChips({required this.goldColor, required this.onSelected});
+// ─────────────────────────────────────────────────────────────────────────────
+// Search Result Card (expandable, grouped)
+// ─────────────────────────────────────────────────────────────────────────────
 
-  final Color goldColor;
-  final ValueChanged<String> onSelected;
-
-  static const List<String> topics = [
-    'الصلاة',
-    'الوضوء',
-    'الصيام',
-    'الأخلاق',
-    'النية',
-    'البيوع',
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8.w,
-      runSpacing: 8.h,
-      children: [
-        for (final topic in topics)
-          ActionChip(
-            onPressed: () => onSelected(topic),
-            avatar: Icon(Icons.tag, size: 16.r, color: goldColor),
-            label: Text(topic),
-            labelStyle: TextStyle(color: goldColor, fontSize: 12.sp),
-            backgroundColor: goldColor.withValues(alpha: 0.09),
-            side: BorderSide(color: goldColor.withValues(alpha: 0.18)),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14.r),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _FeaturedCard extends StatelessWidget {
-  const _FeaturedCard({
-    required this.goldColor,
-    required this.downloaded,
-    required this.downloading,
-    required this.onDownload,
-    required this.onRead,
-  });
-
-  final Color goldColor;
-  final bool downloaded;
-  final bool downloading;
-  final VoidCallback onDownload;
-  final VoidCallback onRead;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: EdgeInsets.all(18.r),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-          colors: [
-            goldColor.withValues(alpha: 0.26),
-            theme.colorScheme.primaryContainer.withValues(alpha: 0.52),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(color: goldColor.withValues(alpha: 0.28)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.workspace_premium, color: goldColor),
-              SizedBox(width: 8.w),
-              Expanded(
-                child: Text(
-                  'اختيار مقترح للبداية',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: goldColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12.h),
-          Text(
-            'ابدأ بالصحيحين ثم السنن الأربعة، وبعدها انتقل للمتون المختصرة مثل الأربعين النووية والقدسية.',
-            style: theme.textTheme.bodyMedium?.copyWith(height: 1.55),
-          ),
-          SizedBox(height: 14.h),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: downloading ? null : onDownload,
-                  icon: downloading
-                      ? SizedBox(
-                          width: 16.r,
-                          height: 16.r,
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : Icon(downloaded ? Icons.download_done : Icons.download),
-                  label: Text(downloaded ? 'محمل' : 'تحميل صحيح البخاري'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: goldColor,
-                    foregroundColor: Colors.black,
-                    padding: EdgeInsets.symmetric(vertical: 12.h),
-                  ),
-                ),
-              ),
-              if (downloaded) ...[
-                SizedBox(width: 10.w),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: onRead,
-                    icon: const Icon(Icons.chrome_reader_mode),
-                    label: const Text('قراءة'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: goldColor,
-                      side: BorderSide(
-                        color: goldColor.withValues(alpha: 0.55),
-                      ),
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GlobalSearchSection extends StatelessWidget {
-  const _GlobalSearchSection({
-    required this.query,
-    required this.results,
-    required this.downloadedCount,
-    required this.goldColor,
-    required this.onOpenResult,
-  });
-
-  final String query;
-  final List<_GlobalHadithResult> results;
-  final int downloadedCount;
-  final Color goldColor;
-  final ValueChanged<_GlobalHadithResult> onOpenResult;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.travel_explore, color: goldColor, size: 18.r),
-            SizedBox(width: 8.w),
-            Expanded(
-              child: Text(
-                'بحث في الكتب المحملة',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: goldColor,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            Text('${results.length} نتيجة', style: theme.textTheme.bodySmall),
-          ],
-        ),
-        SizedBox(height: 10.h),
-        if (downloadedCount == 0)
-          _SearchHintCard(
-            goldColor: goldColor,
-            icon: Icons.download,
-            title: 'حمّل كتابا أولا',
-            text:
-                'البحث العام داخل نصوص الأحاديث يعمل على الكتب المحملة داخل التطبيق.',
-          )
-        else if (results.isEmpty)
-          _SearchHintCard(
-            goldColor: goldColor,
-            icon: Icons.manage_search,
-            title: 'لا توجد أحاديث مطابقة',
-            text: 'جرّب كلمة أخرى أو حمّل كتبا أكثر لتوسيع البحث.',
-          )
-        else
-          for (final result in results.take(6)) ...[
-            _GlobalHadithResultCard(
-              result: result,
-              query: query,
-              goldColor: goldColor,
-              onTap: () => onOpenResult(result),
-            ),
-            SizedBox(height: 10.h),
-          ],
-        if (results.length > 6)
-          Padding(
-            padding: EdgeInsets.only(top: 2.h),
-            child: Text(
-              'يعرض أهم 6 نتائج هنا. افتح الكتاب لمتابعة بقية النتائج بنفس البحث.',
-              style: theme.textTheme.bodySmall,
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _GlobalHadithResultCard extends StatelessWidget {
-  const _GlobalHadithResultCard({
+class _SearchResultCard extends StatelessWidget {
+  const _SearchResultCard({
     required this.result,
-    required this.query,
+    required this.index,
+    required this.isExpanded,
+    required this.onToggle,
+    required this.onRead,
     required this.goldColor,
-    required this.onTap,
   });
 
   final _GlobalHadithResult result;
-  final String query;
+  final int index;
+  final bool isExpanded;
+  final VoidCallback onToggle;
+  final VoidCallback onRead;
   final Color goldColor;
-  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18.r),
-      child: Container(
-        padding: EdgeInsets.all(14.r),
-        decoration: BoxDecoration(
-          color: theme.cardTheme.color,
-          borderRadius: BorderRadius.circular(18.r),
-          border: Border.all(color: goldColor.withValues(alpha: 0.16)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.menu_book, color: goldColor, size: 18.r),
-                SizedBox(width: 8.w),
-                Expanded(
-                  child: Text(
-                    result.book.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+    final text = result.hadith.text;
+
+    final displayedText = isExpanded
+        ? text
+        : (text.length > 150 ? '${text.substring(0, 150)}...' : text);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color,
+        borderRadius: BorderRadius.circular(18.r),
+        border: Border.all(color: goldColor.withValues(alpha: 0.15)),
+      ),
+      child: InkWell(
+        onTap: onToggle,
+        borderRadius: BorderRadius.circular(18.r),
+        child: Padding(
+          padding: EdgeInsets.all(14.r),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 28.r,
+                    height: 28.r,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: goldColor.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: goldColor.withValues(alpha: 0.25)),
+                    ),
+                    child: Text(
+                      '$index',
+                      style: TextStyle(
+                        color: goldColor,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-                Text(
-                  'حديث ${result.hadith.number}',
-                  style: TextStyle(
+                  SizedBox(width: 10.w),
+                  Text(
+                    'حديث رقم ${result.hadith.number}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: goldColor,
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    isExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
                     color: goldColor,
+                    size: 22.r,
+                  ),
+                ],
+              ),
+              SizedBox(height: 10.h),
+              Text(
+                displayedText,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  height: 1.5,
+                  fontSize: 14.sp,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
+                ),
+              ),
+              if (result.hadith.referenceLabel.isNotEmpty) ...[
+                SizedBox(height: 8.h),
+                Text(
+                  result.hadith.referenceLabel,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color:
+                        theme.colorScheme.onSurface.withValues(alpha: 0.65),
                     fontSize: 11.sp,
-                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              _snippet(result.hadith.text, query),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(height: 1.5),
-            ),
-          ],
+              if (isExpanded) ...[
+                SizedBox(height: 12.h),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: OutlinedButton.icon(
+                    onPressed: onRead,
+                    icon: const Icon(Icons.chrome_reader_mode, size: 16),
+                    label: const Text('فتح في القارئ'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: goldColor,
+                      side: BorderSide(
+                          color: goldColor.withValues(alpha: 0.55)),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 14.w, vertical: 8.h),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
   }
-
-  String _snippet(String text, String query) {
-    final trimmed = text.replaceAll(RegExp(r'\s+'), ' ').trim();
-    final normalizedText = _normalizeLoose(trimmed);
-    final normalizedQuery = _normalizeLoose(query);
-    final index = normalizedQuery.isEmpty
-        ? -1
-        : normalizedText.indexOf(normalizedQuery);
-
-    if (index <= 35) {
-      return trimmed.length <= 220
-          ? trimmed
-          : '${trimmed.substring(0, 220)}...';
-    }
-
-    final start = (index - 70).clamp(0, trimmed.length);
-    final end = (start + 220).clamp(0, trimmed.length);
-    return '...${trimmed.substring(start, end)}...';
-  }
-
-  String _normalizeLoose(String value) {
-    return value
-        .replaceAll(RegExp(r'[\u064B-\u065F\u0670]'), '')
-        .replaceAll('أ', 'ا')
-        .replaceAll('إ', 'ا')
-        .replaceAll('آ', 'ا')
-        .replaceAll('ى', 'ي')
-        .replaceAll('ة', 'ه')
-        .replaceAll('ؤ', 'و')
-        .replaceAll('ئ', 'ي')
-        .toLowerCase()
-        .trim();
-  }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Search Hint Card
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _SearchHintCard extends StatelessWidget {
   const _SearchHintCard({
@@ -1045,10 +1069,16 @@ class _SearchHintCard extends StatelessWidget {
                   title,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
                 SizedBox(height: 4.h),
-                Text(text, style: theme.textTheme.bodySmall),
+                Text(
+                  text,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
               ],
             ),
           ),
@@ -1057,6 +1087,12 @@ class _SearchHintCard extends StatelessWidget {
     );
   }
 }
+
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sunnah Reader Page
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _SunnahReaderPage extends StatefulWidget {
   const _SunnahReaderPage({
@@ -1087,131 +1123,163 @@ class _SunnahReaderPageState extends State<_SunnahReaderPage> {
   @override
   void dispose() {
     _searchController.dispose();
+    FocusManager.instance.primaryFocus?.unfocus();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final goldColor = theme.brightness == Brightness.dark
-        ? const Color(0xFFD4AF37)
-        : const Color(0xFFC5A059);
+    final goldColor = theme.colorScheme.secondary;
     final results = _filteredHadiths();
 
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(widget.book.title),
-          centerTitle: false,
-          actions: [
-            Padding(
-              padding: EdgeInsetsDirectional.only(end: 12.w),
-              child: Center(
-                child: Text(
-                  '${widget.hadiths.length} حديث',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-            ),
-          ],
-        ),
-        body: ArabesqueBackground(
-          child: SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: EdgeInsets.fromLTRB(18.w, 16.h, 18.w, 0),
-                  child: Column(
-                    children: [
-                      TextField(
-                        controller: _searchController,
-                        onChanged: (value) => setState(() => _query = value),
-                        textInputAction: TextInputAction.search,
-                        decoration: InputDecoration(
-                          hintText: 'ابحث داخل ${widget.book.title}',
-                          hintStyle: theme.textTheme.bodySmall,
-                          filled: true,
-                          fillColor: theme.cardTheme.color,
-                          prefixIcon: Icon(Icons.search, color: goldColor),
-                          suffixIcon: _query.isEmpty
-                              ? null
-                              : IconButton(
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() => _query = '');
-                                  },
-                                  icon: const Icon(Icons.close),
-                                  color: goldColor,
-                                ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(18.r),
-                            borderSide: BorderSide(
-                              color: goldColor.withValues(alpha: 0.18),
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(18.r),
-                            borderSide: BorderSide(
-                              color: goldColor.withValues(alpha: 0.18),
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(18.r),
-                            borderSide: BorderSide(
-                              color: goldColor,
-                              width: 1.4,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 16.h),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.chrome_reader_mode,
-                            color: goldColor,
-                            size: 18.r,
-                          ),
-                          SizedBox(width: 8.w),
-                          Text(
-                            _query.trim().isEmpty
-                                ? 'الأحاديث المحفوظة'
-                                : 'نتائج البحث',
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: goldColor,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            '${results.length}',
-                            style: theme.textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ],
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text(widget.book.title),
+            centerTitle: false,
+            actions: [
+              Padding(
+                padding: EdgeInsetsDirectional.only(end: 12.w),
+                child: Center(
+                  child: Text(
+                    '${widget.hadiths.length} حديث',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-                SizedBox(height: 12.h),
-                Expanded(
-                  child: results.isEmpty
-                      ? ListView(
-                          padding: EdgeInsets.symmetric(horizontal: 18.w),
-                          children: [_EmptySearch(goldColor: goldColor)],
-                        )
-                      : ListView.separated(
-                          padding: EdgeInsets.fromLTRB(18.w, 0, 18.w, 28.h),
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: results.length,
-                          separatorBuilder: (_, _) => SizedBox(height: 12.h),
-                          itemBuilder: (context, index) => _HadithCard(
-                            hadith: results[index],
-                            goldColor: goldColor,
+              ),
+            ],
+          ),
+          body: ArabesqueBackground(
+            child: SafeArea(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(18.w, 16.h, 18.w, 0),
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: _searchController,
+                          textInputAction: TextInputAction.search,
+                          onSubmitted: (value) {
+                            setState(() => _query = value);
+                            FocusScope.of(context).unfocus();
+                          },
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'ابحث داخل ${widget.book.title}',
+                            hintStyle: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.55,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: theme.cardTheme.color,
+                            prefixIcon: IconButton(
+                              onPressed: () {
+                                setState(() => _query = _searchController.text);
+                                FocusScope.of(context).unfocus();
+                              },
+                              icon: Icon(Icons.search, color: goldColor),
+                            ),
+                            suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                              valueListenable: _searchController,
+                              builder: (context, value, _) {
+                                return value.text.isEmpty
+                                    ? const SizedBox.shrink()
+                                    : IconButton(
+                                        onPressed: () {
+                                          _searchController.clear();
+                                          setState(() => _query = '');
+                                        },
+                                        icon: const Icon(Icons.close),
+                                        color: goldColor,
+                                      );
+                              },
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(18.r),
+                              borderSide: BorderSide(
+                                color: goldColor.withValues(alpha: 0.18),
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(18.r),
+                              borderSide: BorderSide(
+                                color: goldColor.withValues(alpha: 0.18),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(18.r),
+                              borderSide: BorderSide(
+                                color: goldColor,
+                                width: 1.4,
+                              ),
+                            ),
                           ),
                         ),
-                ),
-              ],
+                        SizedBox(height: 16.h),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.chrome_reader_mode,
+                              color: goldColor,
+                              size: 18.r,
+                            ),
+                            SizedBox(width: 8.w),
+                            Text(
+                              _query.trim().isEmpty
+                                  ? 'الأحاديث المحفوظة'
+                                  : 'نتائج البحث',
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: goldColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              '${results.length}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.7),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  Expanded(
+                    child: results.isEmpty
+                        ? ListView(
+                            padding: EdgeInsets.symmetric(horizontal: 18.w),
+                            children: [_EmptySearch(goldColor: goldColor)],
+                          )
+                        : ListView.separated(
+                            padding:
+                                EdgeInsets.fromLTRB(18.w, 0, 18.w, 28.h),
+                            physics: const BouncingScrollPhysics(),
+                            itemCount: results.length,
+                            separatorBuilder: (_, _) =>
+                                SizedBox(height: 12.h),
+                            itemBuilder: (context, index) => _HadithCard(
+                              hadith: results[index],
+                              goldColor: goldColor,
+                            ),
+                          ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -1245,6 +1313,10 @@ class _SunnahReaderPageState extends State<_SunnahReaderPage> {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Hadith Card
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _HadithCard extends StatelessWidget {
   const _HadithCard({required this.hadith, required this.goldColor});
 
@@ -1267,7 +1339,8 @@ class _HadithCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                padding:
+                    EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
                 decoration: BoxDecoration(
                   color: goldColor.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(12.r),
@@ -1289,7 +1362,11 @@ class _HadithCard extends StatelessWidget {
                     hadith.referenceLabel,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface
+                          .withValues(alpha: 0.75),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -1301,7 +1378,9 @@ class _HadithCard extends StatelessWidget {
             textAlign: TextAlign.start,
             style: theme.textTheme.bodyMedium?.copyWith(
               height: 1.85,
-              fontSize: 16.sp,
+              fontSize: 17.sp,
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -1309,6 +1388,10 @@ class _HadithCard extends StatelessWidget {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Book Card
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _BookCard extends StatelessWidget {
   const _BookCard({
@@ -1318,6 +1401,7 @@ class _BookCard extends StatelessWidget {
     required this.downloading,
     required this.onDownload,
     required this.onRead,
+    required this.onDelete,
   });
 
   final _SunnahBook book;
@@ -1326,6 +1410,7 @@ class _BookCard extends StatelessWidget {
   final bool downloading;
   final VoidCallback onDownload;
   final VoidCallback onRead;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -1350,7 +1435,8 @@ class _BookCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: goldColor.withValues(alpha: 0.11),
                   borderRadius: BorderRadius.circular(12.r),
-                  border: Border.all(color: goldColor.withValues(alpha: 0.22)),
+                  border:
+                      Border.all(color: goldColor.withValues(alpha: 0.22)),
                 ),
                 child: Icon(Icons.menu_book, color: goldColor, size: 24.r),
               ),
@@ -1363,6 +1449,7 @@ class _BookCard extends StatelessWidget {
                       book.title,
                       style: theme.textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                     SizedBox(height: 3.h),
@@ -1370,14 +1457,18 @@ class _BookCard extends StatelessWidget {
                       book.author,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface
+                            .withValues(alpha: 0.65),
+                      ),
                     ),
                   ],
                 ),
               ),
               SizedBox(width: 8.w),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                padding:
+                    EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
                 decoration: BoxDecoration(
                   color: goldColor.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(12.r),
@@ -1396,7 +1487,11 @@ class _BookCard extends StatelessWidget {
           SizedBox(height: 12.h),
           Text(
             book.description,
-            style: theme.textTheme.bodySmall?.copyWith(height: 1.45),
+            style: theme.textTheme.bodySmall?.copyWith(
+              height: 1.45,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+              fontSize: 13.sp,
+            ),
           ),
           SizedBox(height: 12.h),
           Wrap(
@@ -1405,12 +1500,26 @@ class _BookCard extends StatelessWidget {
             children: [
               for (final topic in book.topics.take(5))
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: 8.w, vertical: 5.h),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    color:
+                        theme.colorScheme.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(10.r),
+                    border: Border.all(
+                      color: theme.colorScheme.primary
+                          .withValues(alpha: 0.15),
+                    ),
                   ),
-                  child: Text(topic, style: theme.textTheme.bodySmall),
+                  child: Text(
+                    topic,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.brightness == Brightness.dark
+                          ? theme.colorScheme.secondary
+                          : theme.colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -1419,20 +1528,37 @@ class _BookCard extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: downloading ? null : onDownload,
+                  onPressed: downloading
+                      ? () {}
+                      : (downloaded ? onDelete : onDownload),
                   icon: downloading
                       ? SizedBox(
                           width: 16.r,
                           height: 16.r,
-                          child: const CircularProgressIndicator(
+                          child: CircularProgressIndicator(
                             strokeWidth: 2,
+                            color: goldColor,
                           ),
                         )
-                      : Icon(downloaded ? Icons.download_done : Icons.download),
-                  label: Text(downloaded ? 'محمل داخل التطبيق' : 'تحميل'),
+                      : Icon(
+                          downloaded
+                              ? Icons.delete_outline
+                              : Icons.download,
+                        ),
+                  label: Text(
+                    downloading
+                        ? 'downloading'.tr
+                        : (downloaded ? 'delete'.tr : 'download'.tr),
+                  ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: goldColor,
-                    side: BorderSide(color: goldColor.withValues(alpha: 0.55)),
+                    foregroundColor:
+                        downloaded ? theme.colorScheme.error : goldColor,
+                    side: BorderSide(
+                      color: downloaded
+                          ? theme.colorScheme.error.withValues(alpha: 0.7)
+                          : goldColor.withValues(alpha: 0.7),
+                      width: 1.2,
+                    ),
                     padding: EdgeInsets.symmetric(vertical: 12.h),
                   ),
                 ),
@@ -1441,7 +1567,10 @@ class _BookCard extends StatelessWidget {
               IconButton.filledTonal(
                 onPressed: downloaded ? onRead : null,
                 icon: const Icon(Icons.chrome_reader_mode),
-                color: goldColor,
+                style: IconButton.styleFrom(
+                  foregroundColor: goldColor,
+                  backgroundColor: goldColor.withValues(alpha: 0.12),
+                ),
               ),
             ],
           ),
@@ -1450,6 +1579,10 @@ class _BookCard extends StatelessWidget {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Empty Search
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _EmptySearch extends StatelessWidget {
   const _EmptySearch({required this.goldColor});
@@ -1474,19 +1607,63 @@ class _EmptySearch extends StatelessWidget {
             'لا توجد نتائج مطابقة',
             style: theme.textTheme.bodyLarge?.copyWith(
               fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
             ),
           ),
           SizedBox(height: 6.h),
           Text(
             'جرب كلمة أقرب مثل: الطهارة، الصيام، الأدب، أو اسم الكتاب.',
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
           ),
         ],
       ),
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Loading More Indicator
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _LoadingMoreIndicator extends StatelessWidget {
+  const _LoadingMoreIndicator({required this.goldColor});
+
+  final Color goldColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 20.h),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 18.r,
+            height: 18.r,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: goldColor.withValues(alpha: 0.7),
+            ),
+          ),
+          SizedBox(width: 10.w),
+          Text(
+            'استمر في التمرير لمزيد من النتائج...',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: goldColor.withValues(alpha: 0.8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Data Models
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _SunnahBook {
   const _SunnahBook({
@@ -1550,6 +1727,10 @@ class _ScoredGlobalHadithResult {
   final int score;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Parsing helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
 List<_HadithEntry> _parseHadiths(dynamic decoded) {
   if (decoded is! Map || decoded['hadiths'] is! List) {
     return const <_HadithEntry>[];
@@ -1583,7 +1764,7 @@ int? _readInt(dynamic value) {
 
 String _cleanHadithText(String value) {
   return value
-      .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+      .replaceAll(RegExp(r'<br\s*/?>',  caseSensitive: false), '\n')
       .replaceAll(RegExp(r'<[^>]+>'), ' ')
       .replaceAll('&quot;', '"')
       .replaceAll('&amp;', '&')
