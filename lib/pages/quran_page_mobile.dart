@@ -79,21 +79,7 @@ class _QuranPageState extends State<QuranPage> {
     } catch (_) {}
 
     // تهيئة القارئ والسورة والآيات لاستماع وقراءة
-    try {
-      final lastRead = _quranService.getLastRead();
-      _selectedReciter = _quranService.getSelectedReciter();
-      _selectedAudioSurah = _quranService.getSelectedAudioSurahOrDefault(lastRead.surah.clamp(1, 114));
-      final maxVerses = quran_text.getVerseCount(_selectedAudioSurah);
-      _audioStartVerse = _quranService.getSelectedAudioStartVerseOrDefault(lastRead.verse.clamp(1, maxVerses));
-      _audioEndVerse = _quranService.getSelectedAudioEndVerseOrDefault(maxVerses);
-      _audioRepeatCount.value = _quranService.getSelectedAudioRepeatCount().clamp(1, 10);
-    } catch (_) {
-      _selectedReciter = QuranService.reciters.first;
-      _selectedAudioSurah = 1;
-      _audioStartVerse = 1;
-      _audioEndVerse = 7;
-      _audioRepeatCount.value = 1;
-    }
+    _loadSettingsFromService();
 
     try {
       final downloadService = Get.find<AudioDownloadService>();
@@ -533,7 +519,10 @@ class _QuranPageState extends State<QuranPage> {
                                   active: audioService.isPlaying.value,
                                   goldColor: activeActionColor,
                                   inactiveColor: inactiveColor,
-                                  onTap: () => Get.to(() => const QuranAudioPage()),
+                                  onTap: () async {
+                                    await Get.to(() => const QuranAudioPage());
+                                    _loadSettingsFromService();
+                                  },
                                 )),
                               ),
                               Expanded(
@@ -697,6 +686,26 @@ class _QuranPageState extends State<QuranPage> {
       final downloaded = await downloadService.isSurahDownloaded(_selectedReciter.key, _selectedAudioSurah);
       _isCurrentSurahDownloaded.value = downloaded;
     } catch (_) {}
+  }
+
+  void _loadSettingsFromService() {
+    try {
+      final lastRead = _quranService.getLastRead();
+      _selectedReciter = _quranService.getSelectedReciter();
+      _selectedAudioSurah = _quranService.getSelectedAudioSurahOrDefault(lastRead.surah.clamp(1, 114));
+      final maxVerses = quran_text.getVerseCount(_selectedAudioSurah);
+      _audioStartVerse = _quranService.getSelectedAudioStartVerseOrDefault(lastRead.verse.clamp(1, maxVerses));
+      _audioEndVerse = _quranService.getSelectedAudioEndVerseOrDefault(maxVerses);
+      _audioRepeatCount.value = _quranService.getSelectedAudioRepeatCount().clamp(1, 10);
+      _checkDownloadStatus();
+      if (mounted) setState(() {});
+    } catch (_) {
+      _selectedReciter = QuranService.reciters.first;
+      _selectedAudioSurah = 1;
+      _audioStartVerse = 1;
+      _audioEndVerse = 7;
+      _audioRepeatCount.value = 1;
+    }
   }
 
   Future<void> _playSelectedRange() async {

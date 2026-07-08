@@ -8,6 +8,7 @@ import '../services/quran_service.dart';
 import '../services/audio_download_service.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/arabesque_painter.dart';
+import 'quran_audio_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -61,6 +62,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final isDark = theme.brightness == Brightness.dark;
     final goldColor = theme.colorScheme.secondary;
     final accentColor = isDark ? goldColor : theme.colorScheme.primary;
+    final textColor = theme.textTheme.bodyMedium?.color ?? (isDark ? Colors.white : Colors.black);
 
     return Scaffold(
       body: ArabesqueBackground(
@@ -263,6 +265,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 if (isExpanded) {
                                   _expandedReciters.remove(info.reciter.key);
                                 } else {
+                                  _expandedReciters.clear();
                                   _expandedReciters.add(info.reciter.key);
                                 }
                               });
@@ -325,62 +328,44 @@ class _ProfilePageState extends State<ProfilePage> {
                                     if (isFullQuran)
                                       Container(
                                         width: double.infinity,
-                                        padding: EdgeInsets.symmetric(vertical: 14.h),
+                                        padding: EdgeInsets.symmetric(vertical: 8.h),
+                                        margin: EdgeInsets.only(bottom: 12.h),
                                         decoration: BoxDecoration(
-                                          color: accentColor.withValues(alpha: 0.08),
+                                          color: Colors.green.withValues(alpha: 0.08),
                                           borderRadius: BorderRadius.circular(14.r),
                                           border: Border.all(
-                                            color: accentColor.withValues(alpha: 0.2),
+                                            color: Colors.green.withValues(alpha: 0.2),
                                             width: 1,
                                           ),
                                         ),
-                                        child: Column(
+                                        child: Row(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
                                             Icon(
-                                              Icons.auto_stories,
-                                              color: accentColor,
-                                              size: 32.r,
+                                              Icons.check_circle_outline,
+                                              color: Colors.green,
+                                              size: 18.r,
                                             ),
-                                            SizedBox(height: 8.h),
+                                            SizedBox(width: 8.w),
                                             Text(
                                               'full_quran_downloaded'.tr,
                                               style: theme.textTheme.bodyMedium?.copyWith(
                                                 fontWeight: FontWeight.bold,
-                                                color: accentColor,
+                                                color: Colors.green,
                                               ),
                                             ),
                                           ],
                                         ),
-                                      )
-                                    else
-                                      Wrap(
-                                        spacing: 8.w,
-                                        runSpacing: 8.h,
-                                        children: info.surahIds.map((surahId) {
-                                          final surahName = controller.currentLanguage.value == 'ar'
-                                              ? quran.getSurahNameArabic(surahId)
-                                              : quran.getSurahName(surahId);
-                                          return Container(
-                                            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
-                                            decoration: BoxDecoration(
-                                              color: accentColor.withValues(alpha: 0.06),
-                                              borderRadius: BorderRadius.circular(10.r),
-                                              border: Border.all(
-                                                color: accentColor.withValues(alpha: 0.18),
-                                              ),
-                                            ),
-                                            child: Text(
-                                              surahName,
-                                              style: theme.textTheme.bodySmall?.copyWith(
-                                                color: isDark ? theme.textTheme.bodySmall?.color : theme.colorScheme.primary,
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 12.sp,
-                                              ),
-                                            ),
-                                          );
-                                        }).toList(),
                                       ),
+                                    _DownloadedSurahsList(
+                                      info: info,
+                                      isDark: isDark,
+                                      accentColor: accentColor,
+                                      textColor: textColor,
+                                      theme: theme,
+                                      controller: controller,
+                                      onRefresh: _refreshDownloads,
+                                    ),
                                   ],
                                 ],
                               ),
@@ -763,5 +748,209 @@ class _SettingsCard extends StatelessWidget {
       );
     }
     return card;
+  }
+}
+
+class _DownloadedSurahsList extends StatefulWidget {
+  final _DownloadedReciterInfo info;
+  final bool isDark;
+  final Color accentColor;
+  final Color textColor;
+  final ThemeData theme;
+  final AppController controller;
+  final VoidCallback onRefresh;
+
+  const _DownloadedSurahsList({
+    required this.info,
+    required this.isDark,
+    required this.accentColor,
+    required this.textColor,
+    required this.theme,
+    required this.controller,
+    required this.onRefresh,
+  });
+
+  @override
+  State<_DownloadedSurahsList> createState() => _DownloadedSurahsListState();
+}
+
+class _DownloadedSurahsListState extends State<_DownloadedSurahsList> {
+  final ScrollController _scrollController = ScrollController();
+  String _query = '';
+
+  String _normalizeArabic(String text) {
+    return text
+        .replaceAll(RegExp(r'[\u064B-\u065F\u0670]'), '') // remove diacritics
+        .replaceAll('أ', 'a')
+        .replaceAll('إ', 'a')
+        .replaceAll('آ', 'a')
+        .replaceAll('ى', 'y')
+        .replaceAll('ة', 'h');
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final normalizedQuery = _normalizeArabic(_query.trim().toLowerCase());
+    final filteredSurahIds = widget.info.surahIds.where((surahId) {
+      if (normalizedQuery.isEmpty) return true;
+      final surahNameAr = _normalizeArabic(quran.getSurahNameArabic(surahId));
+      final surahNameEn = quran.getSurahName(surahId).toLowerCase();
+      return surahNameAr.contains(normalizedQuery) ||
+          surahNameEn.contains(normalizedQuery) ||
+          surahId.toString() == normalizedQuery;
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(bottom: 10.h),
+          child: TextField(
+            style: widget.theme.textTheme.bodyMedium?.copyWith(fontSize: 13.sp),
+            decoration: InputDecoration(
+              hintText: 'search_surah'.tr,
+              hintStyle: TextStyle(
+                color: widget.textColor.withValues(alpha: 0.4),
+                fontSize: 13.sp,
+              ),
+              prefixIcon: Icon(Icons.search, color: widget.accentColor, size: 18.r),
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+              filled: true,
+              fillColor: widget.isDark
+                  ? Colors.white.withValues(alpha: 0.03)
+                  : Colors.black.withValues(alpha: 0.02),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: widget.accentColor.withValues(alpha: 0.15)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: widget.accentColor.withValues(alpha: 0.15)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: widget.accentColor, width: 1.5),
+              ),
+            ),
+            onChanged: (val) {
+              setState(() {
+                _query = val;
+              });
+            },
+          ),
+        ),
+        Container(
+          constraints: BoxConstraints(maxHeight: 200.h),
+          decoration: BoxDecoration(
+            color: widget.isDark
+                ? Colors.white.withValues(alpha: 0.02)
+                : Colors.black.withValues(alpha: 0.01),
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(
+              color: widget.isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.black.withValues(alpha: 0.03),
+            ),
+          ),
+          child: filteredSurahIds.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.r),
+                    child: Text(
+                      'no_surahs_found'.tr,
+                      style: widget.theme.textTheme.bodyMedium?.copyWith(
+                        color: widget.textColor.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+                )
+              : Scrollbar(
+                  controller: _scrollController,
+                  thumbVisibility: true,
+                  child: ListView.separated(
+                    controller: _scrollController,
+                    padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 10.w),
+                    shrinkWrap: true,
+                    itemCount: filteredSurahIds.length,
+                    separatorBuilder: (context, idx) => Divider(
+                      color: widget.isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.black.withValues(alpha: 0.03),
+                      height: 1,
+                    ),
+                    itemBuilder: (context, idx) {
+                      final surahId = filteredSurahIds[idx];
+                      final surahName = widget.controller.currentLanguage.value == 'ar'
+                          ? quran.getSurahNameArabic(surahId)
+                          : quran.getSurahName(surahId);
+
+                      return InkWell(
+                        onTap: () async {
+                          await Get.to(() => QuranAudioPage(
+                                initialReciterKey: widget.info.reciter.key,
+                                initialSurah: surahId,
+                              ));
+                          widget.onRefresh();
+                        },
+                        borderRadius: BorderRadius.circular(10.r),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 6.w),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 26.r,
+                                height: 26.r,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: widget.accentColor.withValues(alpha: 0.08),
+                                  border: Border.all(
+                                    color: widget.accentColor.withValues(alpha: 0.25),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  '$surahId',
+                                  style: TextStyle(
+                                    fontSize: 10.sp,
+                                    fontWeight: FontWeight.bold,
+                                    color: widget.accentColor,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: Text(
+                                  surahName,
+                                  style: widget.theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: widget.controller.currentLanguage.value == 'ar'
+                                        ? 'naskh'
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                              Icon(
+                                Icons.play_circle_fill_rounded,
+                                color: widget.accentColor,
+                                size: 24.r,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+        ),
+      ],
+    );
   }
 }

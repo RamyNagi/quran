@@ -12,7 +12,9 @@ import '../static/mysnakbar.dart';
 import '../static/mydialog.dart';
 
 class QuranAudioPage extends StatefulWidget {
-  const QuranAudioPage({super.key});
+  final String? initialReciterKey;
+  final int? initialSurah;
+  const QuranAudioPage({super.key, this.initialReciterKey, this.initialSurah});
 
   @override
   State<QuranAudioPage> createState() => _QuranAudioPageState();
@@ -54,6 +56,9 @@ class _QuranAudioPageState extends State<QuranAudioPage> {
       };
 
       _reciters = QuranService.reciters;
+      if (widget.initialReciterKey != null) {
+        _quranService.setSelectedReciter(widget.initialReciterKey!);
+      }
       _selectedReciter = _quranService.getSelectedReciter();
 
       // تعيين السورة والآيات الافتراضية بناءً على آخر صفحة مقروءة أو الإعدادات المحفوظة
@@ -63,19 +68,32 @@ class _QuranAudioPageState extends State<QuranAudioPage> {
         final defaultMax = quran_pkg.getVerseCount(defaultSurah);
         final defaultStart = lastRead.verse.clamp(1, defaultMax);
 
+        if (widget.initialSurah != null) {
+          _quranService.setSelectedAudioSurah(widget.initialSurah!);
+          final maxV = quran_pkg.getVerseCount(widget.initialSurah!);
+          _quranService.setSelectedAudioStartVerse(1);
+          _quranService.setSelectedAudioEndVerse(maxV);
+        }
+
         _selectedSurah = _quranService.getSelectedAudioSurahOrDefault(defaultSurah);
         final maxVerses = quran_pkg.getVerseCount(_selectedSurah);
         _startVerse = _quranService.getSelectedAudioStartVerseOrDefault(defaultStart).clamp(1, maxVerses);
         _endVerse = _quranService.getSelectedAudioEndVerseOrDefault(maxVerses).clamp(1, maxVerses);
         _repeatCount = _quranService.getSelectedAudioRepeatCount().clamp(1, 10);
       } catch (_) {
-        _selectedSurah = 1;
+        _selectedSurah = widget.initialSurah ?? 1;
         _startVerse = 1;
-        _endVerse = 7;
+        _endVerse = quran_pkg.getVerseCount(_selectedSurah);
         _repeatCount = 1;
       }
       _dependenciesLoaded = true;
       _updateDownloadStatuses();
+
+      if (widget.initialSurah != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _playSelectedRange();
+        });
+      }
     } catch (e, s) {
       _dependenciesLoaded = false;
       _errorMessage = '$e\n$s';
@@ -121,6 +139,9 @@ class _QuranAudioPageState extends State<QuranAudioPage> {
     await _quranService.setSelectedAudioStartVerse(1);
     await _quranService.setSelectedAudioEndVerse(quran_pkg.getVerseCount(surah));
     await _updateDownloadStatuses();
+    if (_audioService.isPlaying.value) {
+      _audioService.stop();
+    }
   }
 
   // التحقق والتشغيل
@@ -295,6 +316,9 @@ class _QuranAudioPageState extends State<QuranAudioPage> {
                             });
                             await _quranService.setSelectedReciter(val);
                             await _updateDownloadStatuses();
+                            if (_audioService.isPlaying.value) {
+                              _audioService.stop();
+                            }
                           }
                         },
                       ),
@@ -411,6 +435,9 @@ class _QuranAudioPageState extends State<QuranAudioPage> {
                                           if (_endVerse < _startVerse) {
                                             await _quranService.setSelectedAudioEndVerse(_startVerse);
                                           }
+                                          if (_audioService.isPlaying.value) {
+                                            _audioService.stop();
+                                          }
                                         }
                                       },
                                     ),
@@ -445,6 +472,9 @@ class _QuranAudioPageState extends State<QuranAudioPage> {
                                         if (val != null) {
                                           setState(() => _endVerse = val);
                                           await _quranService.setSelectedAudioEndVerse(val);
+                                          if (_audioService.isPlaying.value) {
+                                            _audioService.stop();
+                                          }
                                         }
                                       },
                                     ),
