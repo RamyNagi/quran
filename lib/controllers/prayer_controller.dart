@@ -19,12 +19,17 @@ class PrayerController extends GetxController {
   final RxString errorMessage = ''.obs;
   final Rx<Duration> timeUntilNext = Duration.zero.obs;
 
+  final RxInt globalEarlyReminderMinutes = 0.obs;
+  final RxString globalEarlyReminderSoundMode = 'default'.obs;
+
   Timer? _ticker;
 
   @override
   void onInit() {
     super.onInit();
     prayerDay.value = _prayerService.loadFromCacheOrDefault();
+    globalEarlyReminderMinutes.value = _notificationService.getGlobalEarlyReminderMinutes();
+    globalEarlyReminderSoundMode.value = _notificationService.getGlobalEarlyReminderSoundMode();
     _startTicker();
     refreshPrayerTimes();
   }
@@ -84,14 +89,37 @@ class PrayerController extends GetxController {
     prayerDay.refresh();
   }
 
+  Future<void> setGlobalEarlyReminderMinutes(int minutes) async {
+    await _notificationService.setGlobalEarlyReminderMinutes(minutes);
+    globalEarlyReminderMinutes.value = minutes;
+    final day = prayerDay.value;
+    if (day != null) await _notificationService.schedulePrayerDay(day);
+    if (Get.isRegistered<AppController>()) {
+      await Get.find<AppController>().rescheduleDhikrReminders();
+    }
+    prayerDay.refresh();
+  }
+
+  Future<void> setGlobalEarlyReminderSoundMode(String soundMode) async {
+    await _notificationService.setGlobalEarlyReminderSoundMode(soundMode);
+    globalEarlyReminderSoundMode.value = soundMode;
+    final day = prayerDay.value;
+    if (day != null) await _notificationService.schedulePrayerDay(day);
+    if (Get.isRegistered<AppController>()) {
+      await Get.find<AppController>().rescheduleDhikrReminders();
+    }
+    prayerDay.refresh();
+  }
+
   String formatTime(DateTime time) => DateFormat('HH:mm').format(time);
 
   String countdownText() {
     final duration = timeUntilNext.value;
-    if (duration.isNegative) return '00:00';
+    if (duration.isNegative) return '00:00:00';
     final hours = duration.inHours;
     final minutes = duration.inMinutes.remainder(60);
-    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
+    final seconds = duration.inSeconds.remainder(60);
+    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   double nextPrayerProgress() {
@@ -114,7 +142,7 @@ class PrayerController extends GetxController {
 
   void _startTicker() {
     _ticker?.cancel();
-    _ticker = Timer.periodic(const Duration(seconds: 30), (_) {
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       _updateCountdown();
     });
     _updateCountdown();

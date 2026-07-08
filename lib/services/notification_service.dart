@@ -82,6 +82,18 @@ class NotificationService {
     await _storage.write('$_enabledPrefix$prayerKey', mode != 'disabled');
   }
 
+  int getGlobalEarlyReminderMinutes() =>
+      _storage.read<int>('early_reminder_minutes_global', 0);
+
+  Future<void> setGlobalEarlyReminderMinutes(int minutes) =>
+      _storage.write('early_reminder_minutes_global', minutes);
+
+  String getGlobalEarlyReminderSoundMode() =>
+      _storage.read<String>('early_reminder_sound_global', 'default');
+
+  Future<void> setGlobalEarlyReminderSoundMode(String soundMode) =>
+      _storage.write('early_reminder_sound_global', soundMode);
+
   Future<void> scheduleDhikrReminders({
     required DhikrReminderMode mode,
     required String dhikrText,
@@ -171,21 +183,44 @@ class NotificationService {
     final scheduleMode = await _scheduleMode(preferExact: true);
     for (var index = 0; index < day.prayers.length; index++) {
       final prayer = day.prayers[index];
+      
+      // 1. Schedule main prayer notification
       final mode = getPrayerNotificationMode(prayer.key);
-      if (mode == 'disabled') continue;
-      var scheduledTime = prayer.time;
-      if (scheduledTime.isBefore(DateTime.now())) {
-        scheduledTime = scheduledTime.add(const Duration(days: 1));
+      if (mode != 'disabled') {
+        var scheduledTime = prayer.time;
+        if (scheduledTime.isBefore(DateTime.now())) {
+          scheduledTime = scheduledTime.add(const Duration(days: 1));
+        }
+        await _plugin.zonedSchedule(
+          index + 1,
+          'prayer_times'.tr,
+          '${prayer.labelKey.tr} - ${'prayer_notification_body'.tr}',
+          tz.TZDateTime.from(scheduledTime, tz.local),
+          _buildNotificationDetails(mode, prayer.labelKey.tr),
+          androidScheduleMode: scheduleMode,
+          payload: 'prayer:${prayer.key}',
+        );
       }
-      await _plugin.zonedSchedule(
-        index + 1,
-        'prayer_times'.tr,
-        '${prayer.labelKey.tr} - ${'prayer_notification_body'.tr}',
-        tz.TZDateTime.from(scheduledTime, tz.local),
-        _buildNotificationDetails(mode, prayer.labelKey.tr),
-        androidScheduleMode: scheduleMode,
-        payload: 'prayer:${prayer.key}',
-      );
+
+      // 2. Schedule early reminder notification
+      final earlyMinutes = getGlobalEarlyReminderMinutes();
+      if (earlyMinutes > 0 && mode != 'disabled') {
+        var earlyTime = prayer.time.subtract(Duration(minutes: earlyMinutes));
+        if (earlyTime.isBefore(DateTime.now())) {
+          earlyTime = earlyTime.add(const Duration(days: 1));
+        }
+        final earlySoundMode = getGlobalEarlyReminderSoundMode();
+
+        await _plugin.zonedSchedule(
+          index + 101, // 101 to 105
+          'prayer_approaching_title'.trParams({'prayer': prayer.labelKey.tr}),
+          'prayer_approaching_body'.trParams({'minutes': '$earlyMinutes'}),
+          tz.TZDateTime.from(earlyTime, tz.local),
+          _buildEarlyNotificationDetails(earlySoundMode),
+          androidScheduleMode: scheduleMode,
+          payload: 'early_prayer:${prayer.key}',
+        );
+      }
     }
   }
 
@@ -258,9 +293,79 @@ class NotificationService {
     }
   }
 
+  NotificationDetails _buildEarlyNotificationDetails(String soundMode) {
+    switch (soundMode) {
+      case 'silent':
+        return const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'hayah_prayers_early_silent',
+            'Early silent prayer reminders',
+            channelDescription: 'Daily silent pre-prayer reminders',
+            importance: Importance.low,
+            priority: Priority.low,
+            playSound: false,
+            enableVibration: false,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentSound: false,
+            presentAlert: true,
+            presentBadge: true,
+          ),
+        );
+      case 'makkah':
+        return const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'hayah_prayers_early_makkah',
+            'Early Makkah Adhan reminders',
+            channelDescription: 'Daily pre-prayer reminders with Makkah Adhan',
+            importance: Importance.max,
+            priority: Priority.high,
+            playSound: true,
+            sound: RawResourceAndroidNotificationSound('adhan_makkah'),
+          ),
+          iOS: DarwinNotificationDetails(
+            sound: 'adhan_makkah.mp3',
+            presentSound: true,
+          ),
+        );
+      case 'madinah':
+        return const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'hayah_prayers_early_madinah',
+            'Early Madinah Adhan reminders',
+            channelDescription: 'Daily pre-prayer reminders with Madinah Adhan',
+            importance: Importance.max,
+            priority: Priority.high,
+            playSound: true,
+            sound: RawResourceAndroidNotificationSound('adhan_madinah'),
+          ),
+          iOS: DarwinNotificationDetails(
+            sound: 'adhan_madinah.mp3',
+            presentSound: true,
+          ),
+        );
+      case 'default':
+      default:
+        return const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'hayah_prayers_early_default',
+            'Early default prayer reminders',
+            channelDescription: 'Daily default pre-prayer reminders',
+            importance: Importance.high,
+            priority: Priority.high,
+            playSound: true,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentSound: true,
+          ),
+        );
+    }
+  }
+
   Future<void> cancelPrayerDay() async {
     for (var id = 1; id <= 5; id++) {
       await _plugin.cancel(id);
+      await _plugin.cancel(id + 100);
     }
   }
 

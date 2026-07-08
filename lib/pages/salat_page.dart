@@ -121,6 +121,11 @@ class SalatPage extends StatelessWidget {
                       ),
                       SizedBox(height: 10.h),
                     ],
+                    SizedBox(height: 10.h),
+                    _GlobalEarlyReminderCard(
+                      controller: controller,
+                      goldColor: goldColor,
+                    ),
                   ],
                 ],
               ),
@@ -876,5 +881,154 @@ class _AlertSettingsSheetState extends State<_AlertSettingsSheet> {
         ],
       ),
     );
+  }
+}
+
+class _GlobalEarlyReminderCard extends StatelessWidget {
+  const _GlobalEarlyReminderCard({
+    required this.controller,
+    required this.goldColor,
+  });
+
+  final PrayerController controller;
+  final Color goldColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = isDark ? goldColor : theme.colorScheme.primary;
+    final textColor = isDark ? AppTheme.textNight : AppTheme.textLight;
+    final cardBg = isDark ? AppTheme.surfaceNight : Colors.white;
+
+    return Obx(() {
+      final earlyMinutes = controller.globalEarlyReminderMinutes.value;
+      final earlySoundMode = controller.globalEarlyReminderSoundMode.value;
+
+      return Container(
+        padding: EdgeInsets.all(16.r),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(
+            color: isDark
+                ? const Color(0xFF3A4E47)
+                : goldColor.withValues(alpha: 0.25),
+            width: 1.5.w,
+          ),
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.hourglass_top_rounded, color: primaryColor, size: 22.r),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    'early_reminder_title'.tr,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 6.h),
+            Text(
+              'early_reminder_desc'.tr,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: textColor.withValues(alpha: 0.6),
+              ),
+            ),
+            SizedBox(height: 12.h),
+            Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E2D27) : Colors.grey[100],
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF3A4E47) : Colors.grey[300]!,
+                  width: 1,
+                ),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  value: earlyMinutes,
+                  isExpanded: true,
+                  dropdownColor: isDark ? AppTheme.surfaceNight : Colors.white,
+                  icon: Icon(Icons.arrow_drop_down_rounded, color: primaryColor),
+                  items: [
+                    DropdownMenuItem(value: 0, child: Text('early_reminder_disabled'.tr, style: TextStyle(color: textColor, fontSize: 13.sp))),
+                    DropdownMenuItem(value: 5, child: Text('minutes_5'.tr, style: TextStyle(color: textColor, fontSize: 13.sp))),
+                    DropdownMenuItem(value: 10, child: Text('minutes_10'.tr, style: TextStyle(color: textColor, fontSize: 13.sp))),
+                    DropdownMenuItem(value: 15, child: Text('minutes_15'.tr, style: TextStyle(color: textColor, fontSize: 13.sp))),
+                    DropdownMenuItem(value: 20, child: Text('minutes_20'.tr, style: TextStyle(color: textColor, fontSize: 13.sp))),
+                    DropdownMenuItem(value: 30, child: Text('minutes_30'.tr, style: TextStyle(color: textColor, fontSize: 13.sp))),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) {
+                      controller.setGlobalEarlyReminderMinutes(val);
+                    }
+                  },
+                ),
+              ),
+            ),
+            if (earlyMinutes > 0) ...[
+              SizedBox(height: 14.h),
+              Text(
+                'early_reminder_sound'.tr,
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E2D27) : Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF3A4E47) : Colors.grey[300]!,
+                    width: 1,
+                  ),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: earlySoundMode,
+                    isExpanded: true,
+                    dropdownColor: isDark ? AppTheme.surfaceNight : Colors.white,
+                    icon: Icon(Icons.arrow_drop_down_rounded, color: primaryColor),
+                    items: [
+                      DropdownMenuItem(value: 'default', child: Text('early_reminder_default'.tr, style: TextStyle(color: textColor, fontSize: 13.sp))),
+                      DropdownMenuItem(value: 'silent', child: Text('early_reminder_silent'.tr, style: TextStyle(color: textColor, fontSize: 13.sp))),
+                      DropdownMenuItem(value: 'makkah', child: Text('notification_mode_makkah'.tr, style: TextStyle(color: textColor, fontSize: 13.sp))),
+                      DropdownMenuItem(value: 'madinah', child: Text('notification_mode_madinah'.tr, style: TextStyle(color: textColor, fontSize: 13.sp))),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        controller.setGlobalEarlyReminderSoundMode(val);
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    });
   }
 }
