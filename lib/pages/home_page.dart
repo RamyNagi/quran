@@ -1,21 +1,72 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:quran/quran.dart' as quran;
+
 import '../controllers/app_controller.dart';
 import '../controllers/prayer_controller.dart';
+import '../services/quran_service.dart';
+import '../services/audio_download_service.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/arabesque_painter.dart';
 import '../static/mysnakbar.dart';
+import 'profile_page.dart';
+import 'quran_audio_page.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _DownloadedReciterInfo {
+  _DownloadedReciterInfo({required this.reciter, required this.surahIds});
+  final QuranReciterOption reciter;
+  final List<int> surahIds;
+}
+
+class _HomePageState extends State<HomePage> {
+  late Future<List<_DownloadedReciterInfo>> _downloadsFuture;
+  final Set<String> _expandedReciters = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshDownloads();
+  }
+
+  void _refreshDownloads() {
+    setState(() {
+      _downloadsFuture = _loadDownloads();
+    });
+  }
+
+  Future<List<_DownloadedReciterInfo>> _loadDownloads() async {
+    final downloadService = Get.find<AudioDownloadService>();
+    final List<_DownloadedReciterInfo> list = [];
+
+    for (final reciter in QuranService.reciters) {
+      final downloadedSurahIds = await downloadService.getDownloadedSurahs(reciter.key);
+      if (downloadedSurahIds.isNotEmpty) {
+        list.add(_DownloadedReciterInfo(
+          reciter: reciter,
+          surahIds: downloadedSurahIds.toList()..sort(),
+        ));
+      }
+    }
+    return list;
+  }
 
   @override
   Widget build(BuildContext context) {
     final AppController controller = Get.find<AppController>();
     final PrayerController prayerController = Get.find<PrayerController>();
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final goldColor = theme.colorScheme.secondary;
+    final accentColor = isDark ? goldColor : theme.colorScheme.primary;
+    final textColor = theme.textTheme.bodyMedium?.color ?? (isDark ? Colors.white : Colors.black);
 
     return Scaffold(
       body: ArabesqueBackground(
@@ -33,11 +84,220 @@ class HomePage extends StatelessWidget {
                     SizedBox(height: 24.h),
                     _buildNextPrayerCard(context, prayerController, goldColor),
                     SizedBox(height: 24.h),
-                    _buildOrnamentDivider(context, goldColor),
-                    SizedBox(height: 16.h),
-                    _buildPrayerTimesList(context, prayerController, goldColor),
+
+                    // Appearance settings card on HomePage
+                    Obx(
+                      () => _SettingsCard(
+                        icon: controller.isNightMode.value
+                            ? Icons.dark_mode
+                            : Icons.light_mode,
+                        title: 'appearance'.tr,
+                        subtitle: controller.isNightMode.value
+                            ? 'theme_night'.tr
+                            : 'theme_light'.tr,
+                        goldColor: goldColor,
+                        trailing: Switch.adaptive(
+                          value: controller.isNightMode.value,
+                          activeColor: accentColor,
+                          onChanged: (_) => controller.toggleTheme(),
+                        ),
+                      ),
+                    ),
+
                     SizedBox(height: 24.h),
-                    _buildBentoActions(context, goldColor),
+
+                    // Audio downloads manager section on HomePage
+                    Text(
+                      'audio_downloads_manager'.tr,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: accentColor,
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+
+                    FutureBuilder<List<_DownloadedReciterInfo>>(
+                      future: _downloadsFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.r),
+                              child: CircularProgressIndicator(color: accentColor),
+                            ),
+                          );
+                        }
+
+                        final list = snapshot.data ?? [];
+                        if (list.isEmpty) {
+                          return Container(
+                            padding: EdgeInsets.all(20.r),
+                            decoration: BoxDecoration(
+                              color: theme.cardTheme.color,
+                              borderRadius: BorderRadius.circular(20.r),
+                              border: Border.all(
+                                color: isDark
+                                    ? goldColor.withValues(alpha: 0.1)
+                                    : theme.colorScheme.primary.withValues(alpha: 0.08),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.cloud_off,
+                                  color: isDark ? goldColor.withValues(alpha: 0.5) : theme.colorScheme.primary.withValues(alpha: 0.5),
+                                  size: 24.r,
+                                ),
+                                SizedBox(width: 14.w),
+                                Expanded(
+                                  child: Text(
+                                    'no_downloads_yet'.tr,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: isDark ? theme.textTheme.bodyMedium?.color : theme.colorScheme.primary.withValues(alpha: 0.7),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        return ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: list.length,
+                          separatorBuilder: (context, index) => SizedBox(height: 14.h),
+                          itemBuilder: (context, index) {
+                            final info = list[index];
+                            final isExpanded = _expandedReciters.contains(info.reciter.key);
+                            final isFullQuran = info.surahIds.length == 114;
+                            final subtitleText = isFullQuran
+                                ? 'full_quran_downloaded'.tr
+                                : 'surahs_count_label'.trParams({'count': '${info.surahIds.length}'});
+
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: theme.cardTheme.color,
+                                borderRadius: BorderRadius.circular(22.r),
+                                border: Border.all(
+                                  color: isDark
+                                      ? goldColor.withValues(alpha: 0.18)
+                                      : theme.colorScheme.primary.withValues(alpha: 0.12),
+                                ),
+                                boxShadow: isDark
+                                    ? []
+                                    : [
+                                        BoxShadow(
+                                          color: theme.shadowColor.withValues(alpha: 0.03),
+                                          blurRadius: 10.r,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(22.r),
+                                child: InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      if (isExpanded) {
+                                        _expandedReciters.remove(info.reciter.key);
+                                      } else {
+                                        _expandedReciters.clear();
+                                        _expandedReciters.add(info.reciter.key);
+                                      }
+                                    });
+                                  },
+                                  child: Padding(
+                                    padding: EdgeInsets.all(16.r),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: EdgeInsets.all(10.r),
+                                              decoration: BoxDecoration(
+                                                color: accentColor.withValues(alpha: 0.1),
+                                                borderRadius: BorderRadius.circular(14.r),
+                                              ),
+                                              child: Icon(Icons.record_voice_over, color: accentColor, size: 22.r),
+                                            ),
+                                            SizedBox(width: 14.w),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    info.reciter.name,
+                                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 16.sp,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    subtitleText,
+                                                    style: theme.textTheme.bodySmall?.copyWith(
+                                                      color: isDark ? theme.textTheme.bodySmall?.color : theme.colorScheme.primary.withValues(alpha: 0.7),
+                                                      fontWeight: isFullQuran ? FontWeight.bold : FontWeight.normal,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Icon(
+                                              isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                              color: accentColor,
+                                              size: 24.r,
+                                            ),
+                                          ],
+                                        ),
+                                        if (isExpanded) ...[
+                                          Padding(
+                                            padding: EdgeInsets.symmetric(vertical: 8.h),
+                                            child: Divider(
+                                              color: isDark
+                                                  ? goldColor.withValues(alpha: 0.15)
+                                                  : theme.colorScheme.primary.withValues(alpha: 0.1),
+                                              height: 1,
+                                            ),
+                                          ),
+                                          SizedBox(height: 4.h),
+                                          if (isFullQuran)
+                                            Container(
+                                              width: double.infinity,
+                                              padding: EdgeInsets.symmetric(vertical: 8.h),
+                                              margin: EdgeInsets.only(bottom: 12.h),
+                                              decoration: BoxDecoration(
+                                                color: Colors.green.withValues(alpha: 0.08),
+                                                borderRadius: BorderRadius.circular(14.r),
+                                                border: Border.all(
+                                                  color: Colors.green.withValues(alpha: 0.2),
+                                                  width: 1,
+                                                ),
+                                              ),
+                                            ),
+                                          _DownloadedSurahsList(
+                                            info: info,
+                                            isDark: isDark,
+                                            accentColor: accentColor,
+                                            textColor: textColor,
+                                            theme: theme,
+                                            controller: controller,
+                                            onRefresh: _refreshDownloads,
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+
                     SizedBox(height: 100.h),
                   ],
                 ),
@@ -69,7 +329,6 @@ class HomePage extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Logo & date
           Row(
             children: [
               Icon(Icons.mosque, color: goldColor, size: 24.r),
@@ -87,8 +346,7 @@ class HomePage extends StatelessWidget {
                   ),
                   Obx(() {
                     final day = prayerController.prayerDay.value;
-                    final location =
-                        day?.locationLabel ?? 'loading_location'.tr;
+                    final location = day?.locationLabel ?? 'loading_location'.tr;
                     final hijri = _getHijriDateString(
                       DateTime.now(),
                       controller.currentLanguage.value,
@@ -108,16 +366,46 @@ class HomePage extends StatelessWidget {
               ),
             ],
           ),
-
-          IconButton(
-            icon: Icon(Icons.calendar_today, color: goldColor, size: 20.r),
-            onPressed: () {
-              final hijri = _getHijriDateString(
-                DateTime.now(),
-                controller.currentLanguage.value,
-              );
-              MySnackbar.showInfo(title: 'ramadan_date'.tr, message: hijri);
-            },
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.calendar_today, color: goldColor, size: 20.r),
+                onPressed: () {
+                  final hijri = _getHijriDateString(
+                    DateTime.now(),
+                    controller.currentLanguage.value,
+                  );
+                  MySnackbar.showInfo(title: 'ramadan_date'.tr, message: hijri);
+                },
+              ),
+              Padding(
+                padding: EdgeInsets.only(right: 4.w, left: 4.w),
+                child: InkWell(
+                  onTap: () {
+                    Get.to(() => const ProfilePage());
+                  },
+                  borderRadius: BorderRadius.circular(16.r),
+                  child: Container(
+                    width: 32.r,
+                    height: 32.r,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: theme.brightness == Brightness.dark
+                          ? Colors.transparent
+                          : theme.colorScheme.primary,
+                    ),
+                    child: Icon(
+                      Icons.person_outline,
+                      color: theme.brightness == Brightness.dark
+                          ? goldColor
+                          : Colors.white,
+                      size: 20.r,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -140,9 +428,7 @@ class HomePage extends StatelessWidget {
             color: isDark ? goldColor : theme.colorScheme.primary,
             fontSize: 17.sp,
             fontWeight: FontWeight.bold,
-            fontFamily: controller.currentLanguage.value == 'ar'
-                ? 'Hafs'
-                : null,
+            fontFamily: controller.currentLanguage.value == 'ar' ? 'Hafs' : null,
           ),
         ),
         SizedBox(height: 4.h),
@@ -291,9 +577,7 @@ class HomePage extends StatelessWidget {
                           textAlign: TextAlign.end,
                           style: TextStyle(
                             fontSize: 11.sp,
-                            color: isDark
-                                ? goldColor.withValues(alpha: 0.6)
-                                : goldColor,
+                            color: isDark ? goldColor.withValues(alpha: 0.6) : goldColor,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -335,307 +619,6 @@ class HomePage extends StatelessWidget {
     });
   }
 
-  // ── Ornament Divider ───────────────────────────────────────────────────────
-  Widget _buildOrnamentDivider(BuildContext context, Color goldColor) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final dividerColor = isDark ? goldColor : theme.colorScheme.primary;
-
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: 1,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.transparent,
-                  dividerColor.withValues(alpha: 0.35),
-                ],
-              ),
-            ),
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
-          child: Text(
-            '❧',
-            style: TextStyle(
-              color: dividerColor.withValues(alpha: 0.55),
-              fontSize: 18.sp,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Container(
-            height: 1,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  dividerColor.withValues(alpha: 0.35),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── Prayer Times List ──────────────────────────────────────────────────────
-  Widget _buildPrayerTimesList(
-    BuildContext context,
-    PrayerController controller,
-    Color goldColor,
-  ) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final headerColor = isDark ? goldColor : theme.colorScheme.primary;
-    final btnColor = isDark
-        ? goldColor.withValues(alpha: 0.85)
-        : theme.colorScheme.primary.withValues(alpha: 0.85);
-
-    return Obx(() {
-      final day = controller.prayerDay.value;
-      if (day == null) return const SizedBox.shrink();
-
-      return Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'prayer_times'.tr.toUpperCase(),
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: headerColor,
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              TextButton(
-                onPressed: () => Get.find<AppController>().navigateToPage(1),
-                child: Text(
-                  'adjust_settings'.tr,
-                  style: TextStyle(
-                    color: btnColor,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 10.h),
-          Column(
-            children: [
-              for (final prayer in day.prayers) ...[
-                _buildPrayerRow(
-                  context,
-                  _prayerIcon(prayer.key),
-                  prayer.labelKey.tr,
-                  controller.formatTime(prayer.time),
-                  goldColor,
-                  isHighlighted: prayer.key == day.nextPrayerKey,
-                ),
-                SizedBox(height: 10.h),
-              ],
-            ],
-          ),
-        ],
-      );
-    });
-  }
-
-  IconData _prayerIcon(String key) {
-    switch (key) {
-      case 'fajr':
-        return Icons.wb_twilight;
-      case 'dhuhr':
-        return Icons.wb_sunny;
-      case 'asr':
-        return Icons.light_mode;
-      case 'maghrib':
-        return Icons.wb_twilight;
-      case 'isha':
-        return Icons.dark_mode;
-      default:
-        return Icons.schedule;
-    }
-  }
-
-  Widget _buildPrayerRow(
-    BuildContext context,
-    IconData icon,
-    String name,
-    String time,
-    Color goldColor, {
-    bool isHighlighted = false,
-  }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final activeColor = isDark ? goldColor : theme.colorScheme.primary;
-    final activeBg = isDark
-        ? goldColor.withValues(alpha: 0.08)
-        : theme.colorScheme.primary.withValues(alpha: 0.06);
-    final activeBorder = isDark
-        ? goldColor.withValues(alpha: 0.35)
-        : theme.colorScheme.primary.withValues(alpha: 0.3);
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-      decoration: BoxDecoration(
-        color: isHighlighted ? activeBg : theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: isHighlighted
-              ? activeBorder
-              : (isDark
-                    ? goldColor.withValues(alpha: 0.1)
-                    : Colors.black.withValues(alpha: 0.06)),
-          width: isHighlighted ? 1.5 : 1.0,
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(
-                icon,
-                color: isHighlighted
-                    ? activeColor
-                    : (isDark
-                          ? goldColor.withValues(alpha: 0.6)
-                          : theme.colorScheme.primary.withValues(alpha: 0.5)),
-                size: 20.r,
-              ),
-              SizedBox(width: 16.w),
-              Text(
-                name,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  fontWeight: isHighlighted
-                      ? FontWeight.bold
-                      : FontWeight.normal,
-                  color: isHighlighted
-                      ? activeColor
-                      : theme.textTheme.bodyLarge?.color,
-                  fontSize: 16.sp,
-                ),
-              ),
-            ],
-          ),
-          Text(
-            time,
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontSize: 18.sp,
-              color: isHighlighted
-                  ? activeColor
-                  : theme.colorScheme.onSurface.withValues(alpha: 0.8),
-              fontWeight: isHighlighted ? FontWeight.bold : FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Bento Actions ──────────────────────────────────────────────────────────
-  Widget _buildBentoActions(BuildContext context, Color goldColor) {
-    return SizedBox(
-      height: 110.h,
-      child: _buildBentoCard(
-        context,
-        Icons.explore,
-        'qibla'.tr,
-        'qibla_val'.tr,
-        goldColor,
-        onTap: () => Get.find<AppController>().navigateToPage(1),
-      ),
-    );
-  }
-
-  Widget _buildBentoCard(
-    BuildContext context,
-    IconData icon,
-    String title,
-    String subtitle,
-    Color goldColor, {
-    VoidCallback? onTap,
-  }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final accentColor = isDark ? goldColor : theme.colorScheme.primary;
-
-    return InkWell(
-      onTap:
-          onTap ??
-          () {
-            MySnackbar.showInfo(title: title, message: subtitle);
-          },
-      borderRadius: BorderRadius.circular(24.r),
-      child: Container(
-        padding: EdgeInsets.all(16.r),
-        decoration: BoxDecoration(
-          color: theme.cardTheme.color,
-          borderRadius: BorderRadius.circular(24.r),
-          border: Border.all(
-            color: isDark
-                ? goldColor.withValues(alpha: 0.15)
-                : theme.colorScheme.primary.withValues(alpha: 0.12),
-          ),
-          boxShadow: isDark
-              ? []
-              : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 10.r,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              padding: EdgeInsets.all(8.r),
-              decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: accentColor.withValues(alpha: 0.2)),
-              ),
-              child: Icon(icon, color: accentColor, size: 20.r),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14.sp,
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  subtitle,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: isDark
-                        ? goldColor.withValues(alpha: 0.6)
-                        : theme.colorScheme.primary.withValues(alpha: 0.7),
-                    fontSize: 12.sp,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Bottom Nav ─────────────────────────────────────────────────────────────
   String _getHijriDateString(DateTime date, String lang) {
     int year = date.year;
     int month = date.month;
@@ -646,65 +629,349 @@ class HomePage extends StatelessWidget {
       month += 12;
     }
 
-    int a = (year / 100).floor();
-    int b = (a / 4).floor();
-    int c = 2 - a + b;
-    int e = (365.25 * (year + 4716)).floor();
-    int f = (30.6001 * (month + 1)).floor();
-    double jd = c + day + e + f - 1524.5;
+    final a = (year / 100).floor();
+    final b = (a / 4).floor();
+    final c = 2 - a + b;
+    final e = (365.25 * (year + 4716)).floor();
+    final f = (30.6001 * (month + 1)).floor();
+    final jd = c + day + e + f - 1524.5;
 
-    double epoch = 1948439.5;
-    double diff = jd - epoch;
+    final base = jd - 1948439.5 + 0.5;
+    final hijriYear = (base / 354.367068).floor();
+    final rem = base - (hijriYear * 354.367068).floor();
+    var hijriMonth = (rem / 29.530588).floor() + 1;
+    var hijriDay = (rem - ((hijriMonth - 1) * 29.530588).floor()).floor() + 4;
 
-    int cycle = (diff / 10631).floor();
-    double cycleRemainder = diff % 10631;
-
-    int yearInCycle = (cycleRemainder / 354.36667).floor();
-    double yearRemainder = cycleRemainder - (yearInCycle * 354.36667);
-
-    int hijriYear = cycle * 30 + yearInCycle + 1;
-    int hijriMonth = (yearRemainder / 29.5).floor() + 1;
-    int hijriDay = (yearRemainder % 29.5).round();
-
-    if (hijriDay == 0) {
-      hijriMonth -= 1;
-      hijriDay = 30;
-    }
-    if (hijriMonth == 0) {
-      hijriYear -= 1;
-      hijriMonth = 12;
+    if (hijriDay > 30) {
+      hijriDay -= 30;
+      hijriMonth += 1;
     }
     if (hijriMonth > 12) {
-      hijriMonth = 12;
-    }
-    if (hijriDay > 30) {
-      hijriDay = 30;
+      hijriMonth -= 12;
     }
 
-    final String dayStr = lang == 'ar'
-        ? _toArabicDigits(hijriDay)
-        : hijriDay.toString();
-    final String yearStr = lang == 'ar'
-        ? _toArabicDigits(hijriYear)
-        : hijriYear.toString();
-    final String monthName = 'hijri_month_$hijriMonth'.tr;
+    final List<String> arMonths = [
+      'محرم', 'صفر', 'ربيع الأول', 'ربيع الآخر',
+      'جمادى الأولى', 'جمادى الآخرة', 'رجب', 'شعبان',
+      'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
+    ];
 
-    return 'hijri_date_format'.trParams({
-      'day': dayStr,
-      'month': monthName,
-      'year': yearStr,
-    });
+    final List<String> enMonths = [
+      'Muharram', 'Safar', 'Rabi\' I', 'Rabi\' II',
+      'Jumada I', 'Jumada II', 'Rajab', 'Sha\'ban',
+      'Ramadan', 'Shawwal', 'Dhu al-Qi\'dah', 'Dhu al-Hijjah'
+    ];
+
+    if (lang == 'ar') {
+      return '$hijriDay ${arMonths[hijriMonth - 1]} $hijriYear هـ';
+    } else {
+      return '$hijriDay ${enMonths[hijriMonth - 1]} $hijriYear AH';
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared Settings Card Widget
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SettingsCard extends StatelessWidget {
+  const _SettingsCard({
+    required this.icon,
+    required this.title,
+    required this.goldColor,
+    required this.trailing,
+    this.subtitle,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final Color goldColor;
+  final Widget trailing;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final accentColor = isDark ? goldColor : theme.colorScheme.primary;
+
+    final card = Container(
+      constraints: BoxConstraints(minHeight: 78.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(
+          color: isDark
+              ? goldColor.withValues(alpha: 0.18)
+              : theme.colorScheme.primary.withValues(alpha: 0.12),
+        ),
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: theme.shadowColor.withValues(alpha: 0.03),
+                  blurRadius: 10.r,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(10.r),
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(14.r),
+            ),
+            child: Icon(icon, color: accentColor, size: 22.r),
+          ),
+          SizedBox(width: 14.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (subtitle != null)
+                  Text(
+                    subtitle!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: isDark ? theme.textTheme.bodySmall?.color : theme.colorScheme.primary.withValues(alpha: 0.7),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          SizedBox(width: 8.w),
+          trailing,
+        ],
+      ),
+    );
+
+    if (onTap != null) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20.r),
+          onTap: onTap,
+          child: card,
+        ),
+      );
+    }
+    return card;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared Downloaded Surahs List Widget
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _DownloadedSurahsList extends StatefulWidget {
+  const _DownloadedSurahsList({
+    required this.info,
+    required this.isDark,
+    required this.accentColor,
+    required this.textColor,
+    required this.theme,
+    required this.controller,
+    required this.onRefresh,
+  });
+
+  final _DownloadedReciterInfo info;
+  final bool isDark;
+  final Color accentColor;
+  final Color textColor;
+  final ThemeData theme;
+  final AppController controller;
+  final VoidCallback onRefresh;
+
+  @override
+  State<_DownloadedSurahsList> createState() => _DownloadedSurahsListState();
+}
+
+class _DownloadedSurahsListState extends State<_DownloadedSurahsList> {
+  String _query = '';
+  final ScrollController _scrollController = ScrollController();
+
+  String _normalizeArabic(String text) {
+    var str = text;
+    str = str.replaceAll(RegExp(r'[أإآأ]'), 'ا');
+    str = str.replaceAll(RegExp(r'[ة]'), 'ه');
+    str = str.replaceAll(RegExp(r'[ى]'), 'ي');
+    str = str.replaceAll(RegExp(r'[\u064B-\u065F]'), ''); // Remove diacritics
+    return str;
   }
 
-  String _toArabicDigits(int number) {
-    final arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-    return number
-        .toString()
-        .split('')
-        .map((char) {
-          final val = int.tryParse(char);
-          return val != null ? arabicDigits[val] : char;
-        })
-        .join('');
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final normalizedQuery = _normalizeArabic(_query.trim().toLowerCase());
+    final filteredSurahIds = widget.info.surahIds.where((surahId) {
+      if (normalizedQuery.isEmpty) return true;
+      final surahNameAr = _normalizeArabic(quran.getSurahNameArabic(surahId));
+      final surahNameEn = quran.getSurahName(surahId).toLowerCase();
+      return surahNameAr.contains(normalizedQuery) ||
+          surahNameEn.contains(normalizedQuery) ||
+          surahId.toString() == normalizedQuery;
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(bottom: 10.h),
+          child: TextField(
+            style: widget.theme.textTheme.bodyMedium?.copyWith(fontSize: 13.sp),
+            decoration: InputDecoration(
+              hintText: 'search_surah'.tr,
+              hintStyle: TextStyle(
+                color: widget.textColor.withValues(alpha: 0.4),
+                fontSize: 13.sp,
+              ),
+              prefixIcon: Icon(Icons.search, color: widget.accentColor, size: 18.r),
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+              filled: true,
+              fillColor: widget.isDark
+                  ? Colors.white.withValues(alpha: 0.03)
+                  : Colors.black.withValues(alpha: 0.02),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: widget.accentColor.withValues(alpha: 0.15)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: widget.accentColor.withValues(alpha: 0.15)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: widget.accentColor, width: 1.5),
+              ),
+            ),
+            onChanged: (val) {
+              setState(() {
+                _query = val;
+              });
+            },
+          ),
+        ),
+        Container(
+          constraints: BoxConstraints(maxHeight: 200.h),
+          decoration: BoxDecoration(
+            color: widget.isDark
+                ? Colors.white.withValues(alpha: 0.02)
+                : Colors.black.withValues(alpha: 0.01),
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(
+              color: widget.isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.black.withValues(alpha: 0.03),
+            ),
+          ),
+          child: filteredSurahIds.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.r),
+                    child: Text(
+                      'no_surahs_found'.tr,
+                      style: widget.theme.textTheme.bodyMedium?.copyWith(
+                        color: widget.textColor.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+                )
+              : Scrollbar(
+                  controller: _scrollController,
+                  thumbVisibility: true,
+                  child: ListView.separated(
+                    controller: _scrollController,
+                    padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 10.w),
+                    shrinkWrap: true,
+                    itemCount: filteredSurahIds.length,
+                    separatorBuilder: (context, idx) => Divider(
+                      color: widget.isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.black.withValues(alpha: 0.03),
+                      height: 1,
+                    ),
+                    itemBuilder: (context, idx) {
+                      final surahId = filteredSurahIds[idx];
+                      final surahName = widget.controller.currentLanguage.value == 'ar'
+                          ? quran.getSurahNameArabic(surahId)
+                          : quran.getSurahName(surahId);
+
+                      return InkWell(
+                        onTap: () async {
+                          await Get.to(() => QuranAudioPage(
+                                initialReciterKey: widget.info.reciter.key,
+                                initialSurah: surahId,
+                              ));
+                          widget.onRefresh();
+                        },
+                        borderRadius: BorderRadius.circular(10.r),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 6.w),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 26.r,
+                                height: 26.r,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: widget.accentColor.withValues(alpha: 0.08),
+                                  border: Border.all(
+                                    color: widget.accentColor.withValues(alpha: 0.25),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  '$surahId',
+                                  style: TextStyle(
+                                    fontSize: 10.sp,
+                                    fontWeight: FontWeight.bold,
+                                    color: widget.accentColor,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: Text(
+                                  surahName,
+                                  style: widget.theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: widget.controller.currentLanguage.value == 'ar'
+                                        ? 'naskh'
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                              Icon(
+                                Icons.play_circle_fill_rounded,
+                                color: widget.accentColor,
+                                size: 24.r,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+        ),
+      ],
+    );
   }
 }

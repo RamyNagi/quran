@@ -27,7 +27,8 @@ class _SunnahPageState extends State<SunnahPage> {
   late final StorageService _storage;
   String _query = '';
   String? _expandedHadithKey;
-  final Set<String> _downloadedEditions = <String>{};
+  bool get _hasDownloadedEditions =>
+      _books.any((book) => _storage.contains(_downloadKey(book.editionId)));
   final Set<String> _downloadingEditions = <String>{};
   final Map<String, List<_HadithEntry>> _hadithCache = {};
 
@@ -37,187 +38,177 @@ class _SunnahPageState extends State<SunnahPage> {
 
   static final List<_SunnahBook> _books = [
     _SunnahBook(
-      title: 'صحيح البخاري',
-      author: 'الإمام محمد بن إسماعيل البخاري',
-      category: 'الصحيحان',
-      description:
-          'أصح كتب الحديث، مرتب على كتب فقهية ويضم أبواب الإيمان والعبادات والمعاملات والسير.',
-      editionId: 'ara-bukhari',
-      topics: [
-        'الإيمان',
-        'الوضوء',
-        'الصلاة',
-        'الزكاة',
-        'الصيام',
-        'الحج',
-        'البيوع',
-        'النكاح',
-        'الجهاد',
-        'الأدب',
+      titleKey: 'book_bukhari_title',
+      authorKey: 'book_bukhari_author',
+      categoryKey: 'category_sahihayn',
+      descriptionKey: 'book_bukhari_desc',
+      bookKey: 'bukhari',
+      topicsKeys: [
+        'topic_faith',
+        'topic_wudu',
+        'topic_prayer',
+        'topic_zakat',
+        'topic_fasting',
+        'topic_hajj',
+        'topic_sales',
+        'topic_marriage',
+        'topic_jihad',
+        'topic_manners',
       ],
     ),
     _SunnahBook(
-      title: 'صحيح مسلم',
-      author: 'الإمام مسلم بن الحجاج النيسابوري',
-      category: 'الصحيحان',
-      description:
-          'من أوثق دواوين السنة، يتميز بجمع طرق الحديث في موضع واحد وسهولة تتبع الروايات.',
-      editionId: 'ara-muslim',
-      topics: [
-        'الإيمان',
-        'الطهارة',
-        'الصلاة',
-        'الجنائز',
-        'الزكاة',
-        'الصيام',
-        'الحج',
-        'القدر',
-        'البر',
+      titleKey: 'book_muslim_title',
+      authorKey: 'book_muslim_author',
+      categoryKey: 'category_sahihayn',
+      descriptionKey: 'book_muslim_desc',
+      bookKey: 'muslim',
+      topicsKeys: [
+        'topic_faith',
+        'topic_purification',
+        'topic_prayer',
+        'topic_funerals',
+        'topic_zakat',
+        'topic_fasting',
+        'topic_hajj',
+        'topic_decree',
+        'topic_righteousness',
       ],
     ),
     _SunnahBook(
-      title: 'سنن أبي داود',
-      author: 'الإمام أبو داود السجستاني',
-      category: 'السنن',
-      description:
-          'كتاب عظيم في أحاديث الأحكام، مناسب للبحث في مسائل الفقه والعمل اليومي.',
-      editionId: 'ara-abudawud',
-      topics: [
-        'الطهارة',
-        'الصلاة',
-        'الزكاة',
-        'الصوم',
-        'المناسك',
-        'النكاح',
-        'الطلاق',
-        'البيوع',
-        'الأقضية',
+      titleKey: 'book_abudawud_title',
+      authorKey: 'book_abudawud_author',
+      categoryKey: 'category_sunan',
+      descriptionKey: 'book_abudawud_desc',
+      bookKey: 'abudawud',
+      topicsKeys: [
+        'topic_purification',
+        'topic_prayer',
+        'topic_zakat',
+        'topic_fasting',
+        'topic_rituals',
+        'topic_marriage',
+        'topic_divorce',
+        'topic_sales',
+        'topic_judgments',
       ],
     ),
     _SunnahBook(
-      title: 'جامع الترمذي',
-      author: 'الإمام محمد بن عيسى الترمذي',
-      category: 'السنن',
-      description:
-          'يجمع الأحاديث مع بيان درجتها وكلام أهل العلم، وفيه أبواب الفضائل والآداب.',
-      editionId: 'ara-tirmidhi',
-      topics: [
-        'الطهارة',
-        'الصلاة',
-        'الوتر',
-        'الرضاع',
-        'البيوع',
-        'الأحكام',
-        'الفضائل',
-        'الدعوات',
-        'الأدب',
+      titleKey: 'book_tirmidhi_title',
+      authorKey: 'book_tirmidhi_author',
+      categoryKey: 'category_sunan',
+      descriptionKey: 'book_tirmidhi_desc',
+      bookKey: 'tirmidhi',
+      topicsKeys: [
+        'topic_purification',
+        'topic_prayer',
+        'topic_witr',
+        'topic_breastfeeding',
+        'topic_sales',
+        'topic_rulings',
+        'topic_virtues',
+        'topic_supplications',
+        'topic_manners',
       ],
     ),
     _SunnahBook(
-      title: 'سنن النسائي',
-      author: 'الإمام أحمد بن شعيب النسائي',
-      category: 'السنن',
-      description:
-          'من كتب السنن المعتمدة، مشهور بدقة الاختيار وكثرة أبواب العبادات والمعاملات.',
-      editionId: 'ara-nasai',
-      topics: [
-        'الطهارة',
-        'المواقيت',
-        'الصلاة',
-        'الجنائز',
-        'الصيام',
-        'الحج',
-        'النكاح',
-        'الزينة',
+      titleKey: 'book_nasai_title',
+      authorKey: 'book_nasai_author',
+      categoryKey: 'category_sunan',
+      descriptionKey: 'book_nasai_desc',
+      bookKey: 'nasai',
+      topicsKeys: [
+        'topic_purification',
+        'topic_prayer_times',
+        'topic_prayer',
+        'topic_funerals',
+        'topic_fasting',
+        'topic_hajj',
+        'topic_marriage',
+        'topic_adornment',
       ],
     ),
     _SunnahBook(
-      title: 'سنن ابن ماجه',
-      author: 'الإمام محمد بن يزيد ابن ماجه',
-      category: 'السنن',
-      description:
-          'آخر الكتب الستة، وفيه أبواب نافعة في السنن والفتن والزهد والأطعمة والطب.',
-      editionId: 'ara-ibnmajah',
-      topics: [
-        'المقدمة',
-        'الطهارة',
-        'الصلاة',
-        'الزكاة',
-        'الصيام',
-        'التجارات',
-        'الأطعمة',
-        'الطب',
-        'الزهد',
+      titleKey: 'book_ibnmajah_title',
+      authorKey: 'book_ibnmajah_author',
+      categoryKey: 'category_sunan',
+      descriptionKey: 'book_ibnmajah_desc',
+      bookKey: 'ibnmajah',
+      topicsKeys: [
+        'topic_introduction',
+        'topic_purification',
+        'topic_prayer',
+        'topic_zakat',
+        'topic_fasting',
+        'topic_trades',
+        'topic_foods',
+        'topic_medicine',
+        'topic_asceticism',
       ],
     ),
     _SunnahBook(
-      title: 'موطأ الإمام مالك',
-      author: 'الإمام مالك بن أنس',
-      category: 'الموطآت',
-      description:
-          'من أقدم دواوين السنة والفقه، يجمع الحديث وآثار الصحابة وعمل أهل المدينة.',
-      editionId: 'ara-malik',
-      topics: [
-        'الطهارة',
-        'الصلاة',
-        'القرآن',
-        'الزكاة',
-        'الصيام',
-        'الحج',
-        'النذور',
-        'الأقضية',
+      titleKey: 'book_malik_title',
+      authorKey: 'book_malik_author',
+      categoryKey: 'category_muwattaat',
+      descriptionKey: 'book_malik_desc',
+      bookKey: 'malik',
+      topicsKeys: [
+        'topic_purification',
+        'topic_prayer',
+        'topic_quran',
+        'topic_zakat',
+        'topic_fasting',
+        'topic_hajj',
+        'topic_vows',
+        'topic_judgments',
       ],
     ),
     _SunnahBook(
-      title: 'الأحاديث القدسية الأربعون',
-      author: 'جمع وترتيب من كتب الحديث',
-      category: 'المتون المختصرة',
-      description:
-          'مجموعة نافعة من الأحاديث القدسية، مناسبة للقراءة والتأمل داخل التطبيق.',
-      editionId: 'ara-qudsi',
-      topics: [
-        'الإيمان',
-        'الإخلاص',
-        'التوبة',
-        'الرحمة',
-        'الدعاء',
-        'الذكر',
-        'التقوى',
+      titleKey: 'book_qudsi_title',
+      authorKey: 'book_qudsi_author',
+      categoryKey: 'category_short_texts',
+      descriptionKey: 'book_qudsi_desc',
+      bookKey: 'qudsi',
+      topicsKeys: [
+        'topic_faith',
+        'topic_sincerity',
+        'topic_repentance',
+        'topic_mercy',
+        'topic_supplication',
+        'topic_remembrance',
+        'topic_piety',
       ],
     ),
     _SunnahBook(
-      title: 'الأربعون النووية',
-      author: 'الإمام يحيى بن شرف النووي',
-      category: 'المتون المختصرة',
-      description:
-          'أحاديث جامعة لأصول الدين والعمل، تصلح كبداية ممتازة لحفظ وفهم السنة.',
-      editionId: 'ara-nawawi',
-      topics: [
-        'النية',
-        'الإسلام',
-        'الإيمان',
-        'الإحسان',
-        'الحلال',
-        'الحرام',
-        'النصيحة',
-        'الأخلاق',
+      titleKey: 'book_nawawi_title',
+      authorKey: 'book_nawawi_author',
+      categoryKey: 'category_short_texts',
+      descriptionKey: 'book_nawawi_desc',
+      bookKey: 'nawawi',
+      topicsKeys: [
+        'topic_intention',
+        'topic_islam',
+        'topic_faith',
+        'topic_ihsan',
+        'topic_halal',
+        'topic_haram',
+        'topic_advice',
+        'topic_morals',
       ],
     ),
     _SunnahBook(
-      title: 'الأربعون للدهلوي',
-      author: 'الإمام شاه ولي الله الدهلوي',
-      category: 'المتون المختصرة',
-      description:
-          'أربعون حديثا مختارة في أصول الإيمان والعمل والتزكية، مناسبة للحفظ والمراجعة.',
-      editionId: 'ara-dehlawi',
-      topics: [
-        'الإيمان',
-        'العلم',
-        'الأخلاق',
-        'العبادة',
-        'التزكية',
-        'السلوك',
-        'الآداب',
+      titleKey: 'book_dehlawi_title',
+      authorKey: 'book_dehlawi_author',
+      categoryKey: 'category_short_texts',
+      descriptionKey: 'book_dehlawi_desc',
+      bookKey: 'dehlawi',
+      topicsKeys: [
+        'topic_faith',
+        'topic_knowledge',
+        'topic_morals',
+        'topic_worship',
+        'topic_soul_purification',
+        'topic_behavior',
+        'topic_etiquette',
       ],
     ),
   ];
@@ -244,12 +235,12 @@ class _SunnahPageState extends State<SunnahPage> {
   void initState() {
     super.initState();
     _storage = Get.find<StorageService>();
-    _downloadedEditions.addAll(
-      _books
-          .where((book) => _storage.contains(_downloadKey(book.editionId)))
-          .map((book) => book.editionId),
-    );
     _scrollController.addListener(_onScroll);
+    _searchController.addListener(() {
+      if (_searchController.text.trim().isEmpty && _query.isNotEmpty) {
+        _setQuery('');
+      }
+    });
   }
 
   void _onScroll() {
@@ -326,7 +317,7 @@ class _SunnahPageState extends State<SunnahPage> {
                           ),
                           Expanded(
                             child: Text(
-                              'نتائج البحث العام (${_cachedHadithResults.length} نتيجة)',
+                              'sunnah_search_results_count'.trParams({'count': '${_cachedHadithResults.length}'}),
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: theme.colorScheme.onSurface,
@@ -353,20 +344,19 @@ class _SunnahPageState extends State<SunnahPage> {
                     ),
                     SizedBox(height: 16.h),
                     if (hasSearch) ...[
-                      if (_downloadedEditions.isEmpty)
+                      if (!_hasDownloadedEditions)
                         _SearchHintCard(
                           goldColor: goldColor,
                           icon: Icons.download,
-                          title: 'حمّل كتابا أولا',
-                          text:
-                              'البحث العام داخل نصوص الأحاديث يعمل على الكتب المحملة داخل التطبيق.',
+                          title: 'sunnah_download_first_title'.tr,
+                          text: 'sunnah_download_first_desc'.tr,
                         )
                       else if (_cachedHadithResults.isEmpty)
                         _SearchHintCard(
                           goldColor: goldColor,
                           icon: Icons.manage_search,
-                          title: 'لا توجد أحاديث مطابقة',
-                          text: 'جرّب كلمة أخرى أو حمّل كتبا أكثر لتوسيع البحث.',
+                          title: 'sunnah_no_matching_hadiths_title'.tr,
+                          text: 'sunnah_no_matching_hadiths_desc'.tr,
                         )
                       else ...[
                         ..._buildGroupedSearchResults(
@@ -378,7 +368,7 @@ class _SunnahPageState extends State<SunnahPage> {
                             padding: EdgeInsets.symmetric(vertical: 12.h),
                             child: Center(
                               child: Text(
-                                'انتهت النتائج',
+                                'sunnah_end_of_results'.tr,
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                   color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
                                 ),
@@ -392,7 +382,7 @@ class _SunnahPageState extends State<SunnahPage> {
                           Icon(Icons.auto_awesome, color: goldColor, size: 18.r),
                           SizedBox(width: 8.w),
                           Text(
-                            'أشهر كتب السنة',
+                            'sunnah_famous_books'.tr,
                             style: theme.textTheme.labelMedium?.copyWith(
                               color: goldColor,
                               fontSize: 14.sp,
@@ -401,7 +391,7 @@ class _SunnahPageState extends State<SunnahPage> {
                           ),
                           const Spacer(),
                           Text(
-                            '${results.length} كتاب',
+                            'sunnah_books_count_label'.trParams({'count': '${results.length}'}),
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
                             ),
@@ -455,7 +445,7 @@ class _SunnahPageState extends State<SunnahPage> {
 
   List<_GlobalHadithResult> _globalHadithResults(String rawQuery) {
     final normalizedQuery = _normalize(rawQuery);
-    if (normalizedQuery.isEmpty || _downloadedEditions.isEmpty) {
+    if (normalizedQuery.isEmpty || !_hasDownloadedEditions) {
       return const <_GlobalHadithResult>[];
     }
 
@@ -576,7 +566,7 @@ class _SunnahPageState extends State<SunnahPage> {
   }
 
   bool _isDownloaded(_SunnahBook book) =>
-      _downloadedEditions.contains(book.editionId);
+      _storage.contains(_downloadKey(book.editionId));
 
   bool _isDownloading(_SunnahBook book) =>
       _downloadingEditions.contains(book.editionId);
@@ -615,22 +605,24 @@ class _SunnahPageState extends State<SunnahPage> {
       if (!mounted) return;
       setState(() {
         _downloadingEditions.remove(book.editionId);
-        _downloadedEditions.add(book.editionId);
       });
 
       MySnackbar.showSuccess(
-        title: 'تم تحميل الكتاب',
-        message: '${book.title} - ${hadiths.length} حديث محفوظ داخل التطبيق',
+        title: 'sunnah_book_downloaded'.tr,
+        message: 'sunnah_book_download_success'.trParams({
+          'book': book.title,
+          'count': '${hadiths.length}',
+        }),
       );
     } on TimeoutException {
       _showDownloadError(
         book,
-        'انتهت مهلة الاتصال. تحقق من الإنترنت وحاول مرة أخرى.',
+        'sunnah_timeout_error'.tr,
       );
     } catch (_) {
       _showDownloadError(
         book,
-        'تعذر تحميل الكتاب الآن. تحقق من الاتصال وحاول لاحقا.',
+        'sunnah_download_error'.tr,
       );
     }
   }
@@ -645,8 +637,8 @@ class _SunnahPageState extends State<SunnahPage> {
     final rawBook = _storage.read<String>(_downloadKey(book.editionId), '');
     if (rawBook.isEmpty) {
       MySnackbar.showWarning(
-        title: 'الكتاب غير محمل',
-        message: 'حمّل الكتاب أولا ثم افتحه للقراءة داخل التطبيق.',
+        title: 'sunnah_book_not_downloaded'.tr,
+        message: 'sunnah_book_not_downloaded_desc'.tr,
       );
       return;
     }
@@ -667,7 +659,7 @@ class _SunnahPageState extends State<SunnahPage> {
     } catch (_) {
       MySnackbar.showError(
         title: book.title,
-        message: 'الملف المحفوظ غير صالح. أعد تحميل الكتاب مرة أخرى.',
+        message: 'sunnah_invalid_file_error'.tr,
       );
     }
   }
@@ -684,9 +676,7 @@ class _SunnahPageState extends State<SunnahPage> {
           await _storage.remove(_downloadKey(book.editionId));
           await _storage.remove('${_downloadKey(book.editionId)}_count');
           _hadithCache.remove(book.editionId);
-          setState(() {
-            _downloadedEditions.remove(book.editionId);
-          });
+          setState(() {});
           MySnackbar.showSuccess(
             title: book.title,
             message: 'download_deleted_success'.tr,
@@ -694,7 +684,7 @@ class _SunnahPageState extends State<SunnahPage> {
         } catch (_) {
           MySnackbar.showError(
             title: book.title,
-            message: 'تعذر حذف الكتاب حالياً.',
+            message: 'sunnah_delete_error'.tr,
           );
         }
       },
@@ -809,7 +799,7 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'السنة الشريفة',
+                  'sunnah_title'.tr,
                   style: theme.textTheme.headlineLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: theme.colorScheme.onSurface,
@@ -817,7 +807,7 @@ class _Header extends StatelessWidget {
                 ),
                 SizedBox(height: 8.h),
                 Text(
-                  'مكتبة مختارة لأهم كتب الحديث مع بحث سريع حسب الموضوع أو اسم الكتاب.',
+                  'sunnah_header_desc'.tr,
                   style: theme.textTheme.bodySmall?.copyWith(
                     height: 1.5,
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
@@ -860,7 +850,7 @@ class _SearchBox extends StatelessWidget {
         color: theme.colorScheme.onSurface,
       ),
       decoration: InputDecoration(
-        hintText: 'ابحث عن موضوع: الصلاة، النية، البيوع...',
+        hintText: 'sunnah_search_hint'.tr,
         hintStyle: theme.textTheme.bodySmall?.copyWith(
           color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
         ),
@@ -968,7 +958,7 @@ class _SearchResultCard extends StatelessWidget {
                   ),
                   SizedBox(width: 10.w),
                   Text(
-                    'حديث رقم ${result.hadith.number}',
+                    'sunnah_hadith_number_label'.trParams({'number': '${result.hadith.number}'}),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: goldColor,
@@ -988,8 +978,8 @@ class _SearchResultCard extends StatelessWidget {
               Text(
                 displayedText,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  height: 1.5,
-                  fontSize: 14.sp,
+                  height: 1.8,
+                  fontSize: 18.sp,
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
                 ),
               ),
@@ -1011,7 +1001,7 @@ class _SearchResultCard extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: onRead,
                     icon: const Icon(Icons.chrome_reader_mode, size: 16),
-                    label: const Text('فتح في القارئ'),
+                    label: Text('sunnah_open_in_reader'.tr),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: goldColor,
                       side: BorderSide(
@@ -1112,12 +1102,21 @@ class _SunnahReaderPage extends StatefulWidget {
 class _SunnahReaderPageState extends State<_SunnahReaderPage> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+  int? _expandedHadithNumber;
 
   @override
   void initState() {
     super.initState();
     _query = widget.initialQuery;
     _searchController.text = widget.initialQuery;
+    _searchController.addListener(() {
+      if (_searchController.text.trim().isEmpty && _query.isNotEmpty) {
+        setState(() {
+          _query = '';
+          _expandedHadithNumber = null;
+        });
+      }
+    });
   }
 
   @override
@@ -1138,6 +1137,7 @@ class _SunnahReaderPageState extends State<_SunnahReaderPage> {
       child: Directionality(
         textDirection: TextDirection.rtl,
         child: Scaffold(
+          bottomNavigationBar: const AppBottomNav(currentIndex: 3),
           appBar: AppBar(
             title: Text(widget.book.title),
             centerTitle: false,
@@ -1146,7 +1146,7 @@ class _SunnahReaderPageState extends State<_SunnahReaderPage> {
                 padding: EdgeInsetsDirectional.only(end: 12.w),
                 child: Center(
                   child: Text(
-                    '${widget.hadiths.length} حديث',
+                    'sunnah_hadiths_count_label'.trParams({'count': '${widget.hadiths.length}'}),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
                       fontWeight: FontWeight.bold,
@@ -1168,14 +1168,17 @@ class _SunnahReaderPageState extends State<_SunnahReaderPage> {
                           controller: _searchController,
                           textInputAction: TextInputAction.search,
                           onSubmitted: (value) {
-                            setState(() => _query = value);
+                            setState(() {
+                              _query = value;
+                              _expandedHadithNumber = null;
+                            });
                             FocusScope.of(context).unfocus();
                           },
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurface,
                           ),
                           decoration: InputDecoration(
-                            hintText: 'ابحث داخل ${widget.book.title}',
+                            hintText: 'sunnah_search_inside_book'.trParams({'book': widget.book.title}),
                             hintStyle: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurface.withValues(
                                 alpha: 0.55,
@@ -1185,7 +1188,10 @@ class _SunnahReaderPageState extends State<_SunnahReaderPage> {
                             fillColor: theme.cardTheme.color,
                             prefixIcon: IconButton(
                               onPressed: () {
-                                setState(() => _query = _searchController.text);
+                                setState(() {
+                                  _query = _searchController.text;
+                                  _expandedHadithNumber = null;
+                                });
                                 FocusScope.of(context).unfocus();
                               },
                               icon: Icon(Icons.search, color: goldColor),
@@ -1198,7 +1204,10 @@ class _SunnahReaderPageState extends State<_SunnahReaderPage> {
                                     : IconButton(
                                         onPressed: () {
                                           _searchController.clear();
-                                          setState(() => _query = '');
+                                          setState(() {
+                                            _query = '';
+                                            _expandedHadithNumber = null;
+                                          });
                                         },
                                         icon: const Icon(Icons.close),
                                         color: goldColor,
@@ -1237,8 +1246,8 @@ class _SunnahReaderPageState extends State<_SunnahReaderPage> {
                             SizedBox(width: 8.w),
                             Text(
                               _query.trim().isEmpty
-                                  ? 'الأحاديث المحفوظة'
-                                  : 'نتائج البحث',
+                                  ? 'sunnah_saved_hadiths'.tr
+                                  : 'sunnah_search_results'.tr,
                               style: theme.textTheme.labelMedium?.copyWith(
                                 color: goldColor,
                                 fontWeight: FontWeight.bold,
@@ -1272,10 +1281,21 @@ class _SunnahReaderPageState extends State<_SunnahReaderPage> {
                             itemCount: results.length,
                             separatorBuilder: (_, _) =>
                                 SizedBox(height: 12.h),
-                            itemBuilder: (context, index) => _HadithCard(
-                              hadith: results[index],
-                              goldColor: goldColor,
-                            ),
+                            itemBuilder: (context, index) {
+                              final hadith = results[index];
+                              final isExpanded = _expandedHadithNumber == hadith.number;
+                              return _HadithCard(
+                                hadith: hadith,
+                                goldColor: goldColor,
+                                index: index + 1,
+                                isExpanded: isExpanded,
+                                onTap: () {
+                                  setState(() {
+                                    _expandedHadithNumber = isExpanded ? null : hadith.number;
+                                  });
+                                },
+                              );
+                            },
                           ),
                   ),
                 ],
@@ -1318,72 +1338,124 @@ class _SunnahReaderPageState extends State<_SunnahReaderPage> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _HadithCard extends StatelessWidget {
-  const _HadithCard({required this.hadith, required this.goldColor});
+  const _HadithCard({
+    required this.hadith,
+    required this.goldColor,
+    this.index,
+    required this.isExpanded,
+    required this.onTap,
+  });
 
   final _HadithEntry hadith;
   final Color goldColor;
+  final int? index;
+  final bool isExpanded;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final text = hadith.text;
+    final displayedText = isExpanded
+        ? text
+        : (text.length > 150 ? '${text.substring(0, 150)}...' : text);
+
     return Container(
-      padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
         color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(18.r),
         border: Border.all(color: goldColor.withValues(alpha: 0.16)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18.r),
+        child: Padding(
+          padding: EdgeInsets.all(16.r),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-                decoration: BoxDecoration(
-                  color: goldColor.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Text(
-                  'حديث ${hadith.number}',
-                  style: TextStyle(
-                    color: goldColor,
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              if (hadith.bookNumber != null ||
-                  hadith.referenceNumber != null) ...[
-                SizedBox(width: 8.w),
-                Expanded(
-                  child: Text(
-                    hadith.referenceLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface
-                          .withValues(alpha: 0.75),
-                      fontWeight: FontWeight.w600,
+              Row(
+                children: [
+                  if (index != null) ...[
+                    Container(
+                      width: 28.r,
+                      height: 28.r,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                         color: goldColor.withValues(alpha: 0.12),
+                         shape: BoxShape.circle,
+                         border: Border.all(
+                             color: goldColor.withValues(alpha: 0.25)),
+                      ),
+                      child: Text(
+                        '$index',
+                        style: TextStyle(
+                          color: goldColor,
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 10.w),
+                  ],
+                  Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                    decoration: BoxDecoration(
+                      color: goldColor.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Text(
+                      'sunnah_hadith_label'.trParams({'number': '${hadith.number}'}),
+                      style: TextStyle(
+                        color: goldColor,
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
+                  if (hadith.bookNumber != null ||
+                      hadith.referenceNumber != null) ...[
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        hadith.referenceLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.75),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (text.length > 150) ...[
+                    SizedBox(width: 8.w),
+                    Icon(
+                      isExpanded
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                      color: goldColor,
+                      size: 22.r,
+                    ),
+                  ],
+                ],
+              ),
+              SizedBox(height: 12.h),
+              Text(
+                displayedText,
+                textAlign: TextAlign.start,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  height: 1.85,
+                  fontSize: 21.sp,
+                  color: theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w500,
                 ),
-              ],
+              ),
             ],
           ),
-          SizedBox(height: 12.h),
-          Text(
-            hadith.text,
-            textAlign: TextAlign.start,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              height: 1.85,
-              fontSize: 17.sp,
-              color: theme.colorScheme.onSurface,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1526,52 +1598,60 @@ class _BookCard extends StatelessWidget {
           SizedBox(height: 14.h),
           Row(
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: downloading
-                      ? () {}
-                      : (downloaded ? onDelete : onDownload),
-                  icon: downloading
-                      ? SizedBox(
-                          width: 16.r,
-                          height: 16.r,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: goldColor,
-                          ),
-                        )
-                      : Icon(
-                          downloaded
-                              ? Icons.delete_outline
-                              : Icons.download,
-                        ),
-                  label: Text(
-                    downloading
-                        ? 'downloading'.tr
-                        : (downloaded ? 'delete'.tr : 'download'.tr),
-                  ),
+              if (downloaded) ...[
+                OutlinedButton.icon(
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline),
+                  label: Text('delete'.tr),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor:
-                        downloaded ? theme.colorScheme.error : goldColor,
+                    foregroundColor: theme.colorScheme.error,
                     side: BorderSide(
-                      color: downloaded
-                          ? theme.colorScheme.error.withValues(alpha: 0.7)
-                          : goldColor.withValues(alpha: 0.7),
+                      color: theme.colorScheme.error.withValues(alpha: 0.7),
                       width: 1.2,
                     ),
-                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
                   ),
                 ),
-              ),
-              SizedBox(width: 10.w),
-              IconButton.filledTonal(
-                onPressed: downloaded ? onRead : null,
-                icon: const Icon(Icons.chrome_reader_mode),
-                style: IconButton.styleFrom(
-                  foregroundColor: goldColor,
-                  backgroundColor: goldColor.withValues(alpha: 0.12),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: onRead,
+                    icon: const Icon(Icons.chrome_reader_mode),
+                    label: Text('sunnah_read_book'.tr),
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: theme.colorScheme.onSecondary,
+                      backgroundColor: goldColor,
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                      elevation: 0,
+                    ),
+                  ),
                 ),
-              ),
+              ] else ...[
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: downloading ? () {} : onDownload,
+                    icon: downloading
+                        ? SizedBox(
+                            width: 16.r,
+                            height: 16.r,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: goldColor,
+                            ),
+                          )
+                        : const Icon(Icons.download),
+                    label: Text(downloading ? 'downloading'.tr : 'download'.tr),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: goldColor,
+                      side: BorderSide(
+                        color: goldColor.withValues(alpha: 0.7),
+                        width: 1.2,
+                      ),
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ],
@@ -1604,7 +1684,7 @@ class _EmptySearch extends StatelessWidget {
           Icon(Icons.manage_search, color: goldColor, size: 42.r),
           SizedBox(height: 10.h),
           Text(
-            'لا توجد نتائج مطابقة',
+            'sunnah_no_results'.tr,
             style: theme.textTheme.bodyLarge?.copyWith(
               fontWeight: FontWeight.bold,
               color: theme.colorScheme.onSurface,
@@ -1612,7 +1692,7 @@ class _EmptySearch extends StatelessWidget {
           ),
           SizedBox(height: 6.h),
           Text(
-            'جرب كلمة أقرب مثل: الطهارة، الصيام، الأدب، أو اسم الكتاب.',
+            'sunnah_no_results_desc'.tr,
             textAlign: TextAlign.center,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
@@ -1650,7 +1730,7 @@ class _LoadingMoreIndicator extends StatelessWidget {
           ),
           SizedBox(width: 10.w),
           Text(
-            'استمر في التمرير لمزيد من النتائج...',
+            'sunnah_scroll_for_more'.tr,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: goldColor.withValues(alpha: 0.8),
             ),
@@ -1667,20 +1747,32 @@ class _LoadingMoreIndicator extends StatelessWidget {
 
 class _SunnahBook {
   const _SunnahBook({
-    required this.title,
-    required this.author,
-    required this.category,
-    required this.description,
-    required this.editionId,
-    required this.topics,
+    required this.titleKey,
+    required this.authorKey,
+    required this.categoryKey,
+    required this.descriptionKey,
+    required this.bookKey,
+    required this.topicsKeys,
   });
 
-  final String title;
-  final String author;
-  final String category;
-  final String description;
-  final String editionId;
-  final List<String> topics;
+  final String titleKey;
+  final String authorKey;
+  final String categoryKey;
+  final String descriptionKey;
+  final String bookKey;
+  final List<String> topicsKeys;
+
+  String get title => titleKey.tr;
+  String get author => authorKey.tr;
+  String get category => categoryKey.tr;
+  String get description => descriptionKey.tr;
+  List<String> get topics => topicsKeys.map((k) => k.tr).toList();
+
+  String get editionId {
+    final lang = Get.locale?.languageCode ?? 'ar';
+    final prefix = lang == 'en' ? 'eng' : 'ara';
+    return '$prefix-$bookKey';
+  }
 
   String get downloadUrl =>
       'https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/$editionId.min.json';
@@ -1702,10 +1794,10 @@ class _HadithEntry {
   String get referenceLabel {
     final parts = <String>[];
     if (bookNumber != null) {
-      parts.add('كتاب $bookNumber');
+      parts.add('sunnah_book_no'.trParams({'number': '$bookNumber'}));
     }
     if (referenceNumber != null) {
-      parts.add('رقم $referenceNumber');
+      parts.add('sunnah_number_no'.trParams({'number': '$referenceNumber'}));
     }
     return parts.join(' - ');
   }

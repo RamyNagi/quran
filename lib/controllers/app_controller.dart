@@ -161,7 +161,9 @@ class AppController extends GetxController {
   }
 
   void setNavBarVisible(bool visible) {
-    isNavBarVisible.value = visible;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      isNavBarVisible.value = visible;
+    });
   }
 
   void toggleTheme() {
@@ -275,7 +277,9 @@ class AppController extends GetxController {
         debugPrint('Error stopping audio in navigateToPage: $e');
       }
     }
-    activePageIndex.value = index;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      activePageIndex.value = index;
+    });
   }
 
   void incrementTasbih() {

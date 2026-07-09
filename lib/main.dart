@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'controllers/app_controller.dart';
 import 'controllers/prayer_controller.dart';
 import 'controllers/quran_controller.dart';
+import 'controllers/fatawa_controller.dart';
 import 'localization/app_translations.dart';
 import 'theme/app_theme.dart';
 import 'pages/home_page.dart';
@@ -14,6 +15,7 @@ import 'pages/profile_page.dart';
 import 'pages/quran_page.dart';
 import 'pages/salat_page.dart';
 import 'pages/sunnah_page.dart';
+import 'pages/fatawa_page.dart';
 import 'services/audio_download_service.dart';
 import 'services/audio_service.dart';
 import 'services/memorization_speech_service.dart';
@@ -81,6 +83,8 @@ Future<void> main() async {
     ),
     fenix: true,
   );
+
+  Get.put(FatawaController(), permanent: true);
 
   runApp(const MyApp());
 }
@@ -341,6 +345,9 @@ class MainRouter extends StatelessWidget {
           break;
         case 3:
           child = const SunnahPage();
+          break;
+        case 4:
+          child = const FatawaPage();
           break;
         case 5:
           child = const ProfilePage();
