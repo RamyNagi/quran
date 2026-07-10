@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:quran/quran.dart' as quran;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../controllers/app_controller.dart';
 import '../controllers/prayer_controller.dart';
@@ -29,6 +30,7 @@ class _DownloadedReciterInfo {
 class _HomePageState extends State<HomePage> {
   late Future<List<_DownloadedReciterInfo>> _downloadsFuture;
   final Set<String> _expandedReciters = {};
+  bool _showDownloads = false;
 
   @override
   void initState() {
@@ -107,195 +109,334 @@ class _HomePageState extends State<HomePage> {
                     SizedBox(height: 24.h),
 
                     // Audio downloads manager section on HomePage
-                    Text(
-                      'audio_downloads_manager'.tr,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: accentColor,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 12.h),
-
-                    FutureBuilder<List<_DownloadedReciterInfo>>(
-                      future: _downloadsFuture,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(20.r),
-                              child: CircularProgressIndicator(color: accentColor),
-                            ),
-                          );
-                        }
-
-                        final list = snapshot.data ?? [];
-                        if (list.isEmpty) {
-                          return Container(
-                            padding: EdgeInsets.all(20.r),
-                            decoration: BoxDecoration(
-                              color: theme.cardTheme.color,
-                              borderRadius: BorderRadius.circular(20.r),
-                              border: Border.all(
-                                color: isDark
-                                    ? goldColor.withValues(alpha: 0.1)
-                                    : theme.colorScheme.primary.withValues(alpha: 0.08),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.cloud_off,
-                                  color: isDark ? goldColor.withValues(alpha: 0.5) : theme.colorScheme.primary.withValues(alpha: 0.5),
-                                  size: 24.r,
-                                ),
-                                SizedBox(width: 14.w),
-                                Expanded(
-                                  child: Text(
-                                    'no_downloads_yet'.tr,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: isDark ? theme.textTheme.bodyMedium?.color : theme.colorScheme.primary.withValues(alpha: 0.7),
-                                    ),
-                                  ),
+                    // Audio downloads manager section on HomePage
+                    Container(
+                      decoration: BoxDecoration(
+                        color: theme.cardTheme.color,
+                        borderRadius: BorderRadius.circular(22.r),
+                        border: Border.all(
+                          color: isDark
+                              ? goldColor.withValues(alpha: 0.18)
+                              : theme.colorScheme.primary.withValues(alpha: 0.12),
+                        ),
+                        boxShadow: isDark
+                            ? []
+                            : [
+                                BoxShadow(
+                                  color: theme.shadowColor.withValues(alpha: 0.03),
+                                  blurRadius: 10.r,
+                                  offset: const Offset(0, 4),
                                 ),
                               ],
-                            ),
-                          );
-                        }
-
-                        return ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: list.length,
-                          separatorBuilder: (context, index) => SizedBox(height: 14.h),
-                          itemBuilder: (context, index) {
-                            final info = list[index];
-                            final isExpanded = _expandedReciters.contains(info.reciter.key);
-                            final isFullQuran = info.surahIds.length == 114;
-                            final subtitleText = isFullQuran
-                                ? 'full_quran_downloaded'.tr
-                                : 'surahs_count_label'.trParams({'count': '${info.surahIds.length}'});
-
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: theme.cardTheme.color,
-                                borderRadius: BorderRadius.circular(22.r),
-                                border: Border.all(
-                                  color: isDark
-                                      ? goldColor.withValues(alpha: 0.18)
-                                      : theme.colorScheme.primary.withValues(alpha: 0.12),
-                                ),
-                                boxShadow: isDark
-                                    ? []
-                                    : [
-                                        BoxShadow(
-                                          color: theme.shadowColor.withValues(alpha: 0.03),
-                                          blurRadius: 10.r,
-                                          offset: const Offset(0, 4),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                _showDownloads = !_showDownloads;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(22.r),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.all(10.r),
+                                        decoration: BoxDecoration(
+                                          color: accentColor.withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(14.r),
                                         ),
-                                      ],
+                                        child: Icon(
+                                          Icons.cloud_download_outlined,
+                                          color: accentColor,
+                                          size: 22.r,
+                                        ),
+                                      ),
+                                      SizedBox(width: 14.w),
+                                      Text(
+                                        'audio_downloads_manager'.tr,
+                                        style: theme.textTheme.bodyLarge?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15.sp,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Icon(
+                                    _showDownloads ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                    color: accentColor,
+                                    size: 24.r,
+                                  ),
+                                ],
                               ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(22.r),
-                                child: InkWell(
-                                  onTap: () {
-                                    setState(() {
-                                      if (isExpanded) {
-                                        _expandedReciters.remove(info.reciter.key);
-                                      } else {
-                                        _expandedReciters.clear();
-                                        _expandedReciters.add(info.reciter.key);
-                                      }
-                                    });
-                                  },
-                                  child: Padding(
-                                    padding: EdgeInsets.all(16.r),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                            ),
+                          ),
+                          if (_showDownloads) ...[
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16.w),
+                              child: Divider(
+                                color: isDark
+                                    ? goldColor.withValues(alpha: 0.15)
+                                    : theme.colorScheme.primary.withValues(alpha: 0.1),
+                                height: 1,
+                              ),
+                            ),
+                            FutureBuilder<List<_DownloadedReciterInfo>>(
+                              future: _downloadsFuture,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                  return Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(20.r),
+                                      child: CircularProgressIndicator(color: accentColor),
+                                    ),
+                                  );
+                                }
+
+                                final list = snapshot.data ?? [];
+                                if (list.isEmpty) {
+                                  return Padding(
+                                    padding: EdgeInsets.all(20.r),
+                                    child: Row(
                                       children: [
-                                        Row(
-                                          children: [
-                                            Container(
-                                              padding: EdgeInsets.all(10.r),
-                                              decoration: BoxDecoration(
-                                                color: accentColor.withValues(alpha: 0.1),
-                                                borderRadius: BorderRadius.circular(14.r),
-                                              ),
-                                              child: Icon(Icons.record_voice_over, color: accentColor, size: 22.r),
-                                            ),
-                                            SizedBox(width: 14.w),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    info.reciter.name,
-                                                    style: theme.textTheme.bodyLarge?.copyWith(
-                                                      fontWeight: FontWeight.bold,
-                                                      fontSize: 16.sp,
-                                                    ),
-                                                  ),
-                                                  Text(
-                                                    subtitleText,
-                                                    style: theme.textTheme.bodySmall?.copyWith(
-                                                      color: isDark ? theme.textTheme.bodySmall?.color : theme.colorScheme.primary.withValues(alpha: 0.7),
-                                                      fontWeight: isFullQuran ? FontWeight.bold : FontWeight.normal,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            Icon(
-                                              isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                                              color: accentColor,
-                                              size: 24.r,
-                                            ),
-                                          ],
+                                        Icon(
+                                          Icons.cloud_off,
+                                          color: isDark ? goldColor.withValues(alpha: 0.5) : theme.colorScheme.primary.withValues(alpha: 0.5),
+                                          size: 24.r,
                                         ),
-                                        if (isExpanded) ...[
-                                          Padding(
-                                            padding: EdgeInsets.symmetric(vertical: 8.h),
-                                            child: Divider(
-                                              color: isDark
-                                                  ? goldColor.withValues(alpha: 0.15)
-                                                  : theme.colorScheme.primary.withValues(alpha: 0.1),
-                                              height: 1,
+                                        SizedBox(width: 14.w),
+                                        Expanded(
+                                          child: Text(
+                                            'no_downloads_yet'.tr,
+                                            style: theme.textTheme.bodyMedium?.copyWith(
+                                              color: isDark ? theme.textTheme.bodyMedium?.color : theme.colorScheme.primary.withValues(alpha: 0.7),
                                             ),
                                           ),
-                                          SizedBox(height: 4.h),
-                                          if (isFullQuran)
-                                            Container(
-                                              width: double.infinity,
-                                              padding: EdgeInsets.symmetric(vertical: 8.h),
-                                              margin: EdgeInsets.only(bottom: 12.h),
-                                              decoration: BoxDecoration(
-                                                color: Colors.green.withValues(alpha: 0.08),
-                                                borderRadius: BorderRadius.circular(14.r),
-                                                border: Border.all(
-                                                  color: Colors.green.withValues(alpha: 0.2),
-                                                  width: 1,
-                                                ),
-                                              ),
-                                            ),
-                                          _DownloadedSurahsList(
-                                            info: info,
-                                            isDark: isDark,
-                                            accentColor: accentColor,
-                                            textColor: textColor,
-                                            theme: theme,
-                                            controller: controller,
-                                            onRefresh: _refreshDownloads,
-                                          ),
-                                        ],
+                                        ),
                                       ],
                                     ),
+                                  );
+                                }
+
+                                return ListView.separated(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: list.length,
+                                  padding: EdgeInsets.all(16.r),
+                                  separatorBuilder: (context, index) => SizedBox(height: 14.h),
+                                  itemBuilder: (context, index) {
+                                    final info = list[index];
+                                    final isExpanded = _expandedReciters.contains(info.reciter.key);
+                                    final isFullQuran = info.surahIds.length == 114;
+                                    final subtitleText = isFullQuran
+                                        ? 'full_quran_downloaded'.tr
+                                        : 'surahs_count_label'.trParams({'count': '${info.surahIds.length}'});
+
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        color: theme.brightness == Brightness.dark
+                                            ? Colors.white.withValues(alpha: 0.02)
+                                            : Colors.black.withValues(alpha: 0.01),
+                                        borderRadius: BorderRadius.circular(22.r),
+                                        border: Border.all(
+                                          color: isDark
+                                              ? goldColor.withValues(alpha: 0.1)
+                                              : theme.colorScheme.primary.withValues(alpha: 0.06),
+                                        ),
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(22.r),
+                                        child: InkWell(
+                                          onTap: () {
+                                            setState(() {
+                                              if (isExpanded) {
+                                                _expandedReciters.remove(info.reciter.key);
+                                              } else {
+                                                _expandedReciters.clear();
+                                                _expandedReciters.add(info.reciter.key);
+                                              }
+                                            });
+                                          },
+                                          child: Padding(
+                                            padding: EdgeInsets.all(16.r),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Container(
+                                                      padding: EdgeInsets.all(10.r),
+                                                      decoration: BoxDecoration(
+                                                        color: accentColor.withValues(alpha: 0.1),
+                                                        borderRadius: BorderRadius.circular(14.r),
+                                                      ),
+                                                      child: Icon(Icons.record_voice_over, color: accentColor, size: 22.r),
+                                                    ),
+                                                    SizedBox(width: 14.w),
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text(
+                                                            info.reciter.name,
+                                                            style: theme.textTheme.bodyLarge?.copyWith(
+                                                              fontWeight: FontWeight.bold,
+                                                              fontSize: 16.sp,
+                                                            ),
+                                                          ),
+                                                          Text(
+                                                            subtitleText,
+                                                            style: theme.textTheme.bodySmall?.copyWith(
+                                                              color: isDark ? theme.textTheme.bodySmall?.color : theme.colorScheme.primary.withValues(alpha: 0.7),
+                                                              fontWeight: isFullQuran ? FontWeight.bold : FontWeight.normal,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    Icon(
+                                                      isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                                      color: accentColor,
+                                                      size: 24.r,
+                                                    ),
+                                                  ],
+                                                ),
+                                                if (isExpanded) ...[
+                                                  Padding(
+                                                    padding: EdgeInsets.symmetric(vertical: 8.h),
+                                                    child: Divider(
+                                                      color: isDark
+                                                          ? goldColor.withValues(alpha: 0.15)
+                                                          : theme.colorScheme.primary.withValues(alpha: 0.1),
+                                                      height: 1,
+                                                    ),
+                                                  ),
+                                                  SizedBox(height: 4.h),
+                                                  if (isFullQuran)
+                                                    Container(
+                                                      width: double.infinity,
+                                                      padding: EdgeInsets.symmetric(vertical: 8.h),
+                                                      margin: EdgeInsets.only(bottom: 12.h),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.green.withValues(alpha: 0.08),
+                                                        borderRadius: BorderRadius.circular(14.r),
+                                                        border: Border.all(
+                                                          color: Colors.green.withValues(alpha: 0.2),
+                                                          width: 1,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  _DownloadedSurahsList(
+                                                    info: info,
+                                                    isDark: isDark,
+                                                    accentColor: accentColor,
+                                                    textColor: textColor,
+                                                    theme: theme,
+                                                    controller: controller,
+                                                    onRefresh: _refreshDownloads,
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: 30.h),
+
+                    // Premium Developer credits section
+                    Padding(
+                      padding: EdgeInsets.only(top: 20.h, bottom: 40.h),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 40.w,
+                                height: 1.h,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      goldColor.withValues(alpha: 0.0),
+                                      goldColor.withValues(alpha: 0.35),
+                                    ],
                                   ),
                                 ),
                               ),
-                            );
-                          },
-                        );
-                      },
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 10.w),
+                                child: Icon(
+                                  Icons.favorite,
+                                  size: 10.r,
+                                  color: goldColor.withValues(alpha: 0.65),
+                                ),
+                              ),
+                              Container(
+                                width: 40.w,
+                                height: 1.h,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      goldColor.withValues(alpha: 0.35),
+                                      goldColor.withValues(alpha: 0.0),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 14.h),
+                          Text(
+                            'developed_by'.tr,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: textColor.withValues(alpha: 0.55),
+                              fontSize: 11.sp,
+                              letterSpacing: 0.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 14.h),
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 12.w,
+                            runSpacing: 8.h,
+                            children: [
+                              _buildDeveloperChip(
+                                context: context,
+                                name: 'mahmoud_shebl'.tr,
+                                phoneNumber: '01228580853',
+                                goldColor: goldColor,
+                                accentColor: accentColor,
+                                isDark: isDark,
+                              ),
+                              _buildDeveloperChip(
+                                context: context,
+                                name: 'ramy_nagi'.tr,
+                                phoneNumber: '01286348550',
+                                goldColor: goldColor,
+                                accentColor: accentColor,
+                                isDark: isDark,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
 
                     SizedBox(height: 100.h),
@@ -667,6 +808,99 @@ class _HomePageState extends State<HomePage> {
     } else {
       return '$hijriDay ${enMonths[hijriMonth - 1]} $hijriYear AH';
     }
+  }
+
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final Uri launchUri = Uri(
+      scheme: 'tel',
+      path: phoneNumber,
+    );
+    try {
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
+      } else {
+        MySnackbar.showError(title: 'error'.tr, message: 'Could not launch dialer');
+      }
+    } catch (e) {
+      MySnackbar.showError(
+        title: 'error'.tr,
+        message: 'Could not launch dialer: $e',
+      );
+    }
+  }
+
+  Widget _buildDeveloperChip({
+    required BuildContext context,
+    required String name,
+    required String phoneNumber,
+    required Color goldColor,
+    required Color accentColor,
+    required bool isDark,
+  }) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: () => _makePhoneCall(phoneNumber),
+      borderRadius: BorderRadius.circular(30.r),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDark
+                ? [
+                    Colors.white.withValues(alpha: 0.03),
+                    Colors.white.withValues(alpha: 0.01),
+                  ]
+                : [
+                    theme.colorScheme.primary.withValues(alpha: 0.04),
+                    theme.colorScheme.primary.withValues(alpha: 0.01),
+                  ],
+          ),
+          borderRadius: BorderRadius.circular(30.r),
+          border: Border.all(
+            color: isDark
+                ? goldColor.withValues(alpha: 0.15)
+                : theme.colorScheme.primary.withValues(alpha: 0.08),
+            width: 1,
+          ),
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.02),
+                    blurRadius: 6.r,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: EdgeInsets.all(5.r),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: accentColor.withValues(alpha: 0.08),
+              ),
+              child: Icon(
+                Icons.phone_in_talk,
+                size: 11.r,
+                color: accentColor,
+              ),
+            ),
+            SizedBox(width: 8.w),
+            Text(
+              name,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isDark ? Colors.white.withValues(alpha: 0.9) : theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 12.sp,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

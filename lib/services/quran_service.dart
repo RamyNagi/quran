@@ -567,6 +567,9 @@ class QuranService {
   int getSelectedAudioRepeatCount() => _storage.read<int>('quran_selected_audio_repeat_count', 1);
   Future<void> setSelectedAudioRepeatCount(int count) => _storage.write('quran_selected_audio_repeat_count', count);
 
+  bool getSelectedAudioRepeatEachVerse() => _storage.read<bool>('quran_selected_audio_repeat_each_verse', false);
+  Future<void> setSelectedAudioRepeatEachVerse(bool value) => _storage.write('quran_selected_audio_repeat_each_verse', value);
+
   bool isFavorite(String id) =>
       _storage.readStringList(_favoritesKey).contains(id);
 

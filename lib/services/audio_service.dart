@@ -56,7 +56,7 @@ class QuranAudioService {
     await _player.play();
   }
 
-  Future<void> playPlaylist(List<String> urls, {List<QuranVerse> verses = const [], int repeatCount = 1}) async {
+  Future<void> playPlaylist(List<String> urls, {List<QuranVerse> verses = const [], int repeatCount = 1, bool repeatEachVerse = false}) async {
     if (urls.isEmpty) return;
 
     final downloadService = Get.find<AudioDownloadService>();
@@ -68,35 +68,73 @@ class QuranAudioService {
     final List<QuranVerse> repeatedVerses = [];
 
     final safeRepeatCount = repeatCount < 1 ? 1 : repeatCount;
-    for (int r = 0; r < safeRepeatCount; r++) {
+    if (repeatEachVerse) {
       for (int i = 0; i < urls.length; i++) {
         final url = urls[i];
         final verse = i < verses.length ? verses[i] : null;
-        
-        final mediaId = verse != null 
-            ? '${verse.surah}_${verse.verse}_r${r}_$i'
-            : 'verse_${r}_$i';
 
-        final mediaItem = MediaItem(
-          id: mediaId,
-          album: 'القرآن الكريم',
-          title: verse != null
-              ? 'سورة ${quran.getSurahNameArabic(verse.surah)} - آية ${verse.verse}'
-              : 'تلاوة عذبة',
-          artist: reciterName,
-          artUri: Uri.parse('https://hayah.app/assets/icon.png'),
-        );
+        for (int r = 0; r < safeRepeatCount; r++) {
+          final mediaId = verse != null 
+              ? '${verse.surah}_${verse.verse}_r${r}_$i'
+              : 'verse_${r}_$i';
+
+          final mediaItem = MediaItem(
+            id: mediaId,
+            album: 'القرآن الكريم',
+            title: verse != null
+                ? 'سورة ${quran.getSurahNameArabic(verse.surah)} - آية ${verse.verse}'
+                : 'تلاوة عذبة',
+            artist: reciterName,
+            artUri: Uri.parse('https://hayah.app/assets/icon.png'),
+          );
+
+          if (verse != null) {
+            final localFile = await downloadService.getLocalAudioFile(reciterKey, verse.surah, verse.verse);
+            if (await localFile.exists() && (await localFile.length()) > 100) {
+              repeatedSources.add(AudioSource.file(localFile.path, tag: mediaItem));
+              continue;
+            }
+          }
+          repeatedSources.add(AudioSource.uri(Uri.parse(url), tag: mediaItem));
+        }
 
         if (verse != null) {
-          final localFile = await downloadService.getLocalAudioFile(reciterKey, verse.surah, verse.verse);
-          if (await localFile.exists() && (await localFile.length()) > 100) {
-            repeatedSources.add(AudioSource.file(localFile.path, tag: mediaItem));
-            continue;
+          for (int r = 0; r < safeRepeatCount; r++) {
+            repeatedVerses.add(verse);
           }
         }
-        repeatedSources.add(AudioSource.uri(Uri.parse(url), tag: mediaItem));
       }
-      repeatedVerses.addAll(verses);
+    } else {
+      for (int r = 0; r < safeRepeatCount; r++) {
+        for (int i = 0; i < urls.length; i++) {
+          final url = urls[i];
+          final verse = i < verses.length ? verses[i] : null;
+          
+          final mediaId = verse != null 
+              ? '${verse.surah}_${verse.verse}_r${r}_$i'
+              : 'verse_${r}_$i';
+
+          final mediaItem = MediaItem(
+            id: mediaId,
+            album: 'القرآن الكريم',
+            title: verse != null
+                ? 'سورة ${quran.getSurahNameArabic(verse.surah)} - آية ${verse.verse}'
+                : 'تلاوة عذبة',
+            artist: reciterName,
+            artUri: Uri.parse('https://hayah.app/assets/icon.png'),
+          );
+
+          if (verse != null) {
+            final localFile = await downloadService.getLocalAudioFile(reciterKey, verse.surah, verse.verse);
+            if (await localFile.exists() && (await localFile.length()) > 100) {
+              repeatedSources.add(AudioSource.file(localFile.path, tag: mediaItem));
+              continue;
+            }
+          }
+          repeatedSources.add(AudioSource.uri(Uri.parse(url), tag: mediaItem));
+        }
+        repeatedVerses.addAll(verses);
+      }
     }
 
     playingVerses.assignAll(repeatedVerses);

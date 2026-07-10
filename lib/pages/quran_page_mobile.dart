@@ -55,6 +55,7 @@ class _QuranPageState extends State<QuranPage> {
   int _audioStartVerse = 1;
   int _audioEndVerse = 7;
   final RxInt _audioRepeatCount = 1.obs;
+  final RxBool _audioRepeatEachVerse = false.obs;
   final RxBool _isCurrentSurahDownloaded = false.obs;
 
   @override
@@ -697,6 +698,7 @@ class _QuranPageState extends State<QuranPage> {
       _audioStartVerse = _quranService.getSelectedAudioStartVerseOrDefault(lastRead.verse.clamp(1, maxVerses));
       _audioEndVerse = _quranService.getSelectedAudioEndVerseOrDefault(maxVerses);
       _audioRepeatCount.value = _quranService.getSelectedAudioRepeatCount().clamp(1, 10);
+      _audioRepeatEachVerse.value = _quranService.getSelectedAudioRepeatEachVerse();
       _checkDownloadStatus();
       if (mounted) setState(() {});
     } catch (_) {
@@ -705,6 +707,7 @@ class _QuranPageState extends State<QuranPage> {
       _audioStartVerse = 1;
       _audioEndVerse = 7;
       _audioRepeatCount.value = 1;
+      _audioRepeatEachVerse.value = false;
     }
   }
 
@@ -737,7 +740,12 @@ class _QuranPageState extends State<QuranPage> {
 
     final audioService = Get.find<QuranAudioService>();
     await audioService.stop();
-    await audioService.playPlaylist(urls, verses: verses, repeatCount: _audioRepeatCount.value);
+    await audioService.playPlaylist(
+      urls,
+      verses: verses,
+      repeatCount: _audioRepeatCount.value,
+      repeatEachVerse: _audioRepeatEachVerse.value,
+    );
   }
 
   Widget _buildAudioControlPanel(BuildContext context, Color cardColor, Color textColor, Color goldColor, Color textVariantColor) {
@@ -1021,6 +1029,55 @@ class _QuranPageState extends State<QuranPage> {
                   ),
                 ],
               ),
+              // Repeat Mode Dropdown
+              Obx(() => Container(
+                height: 32.h,
+                padding: EdgeInsets.symmetric(horizontal: 4.w),
+                decoration: BoxDecoration(
+                  color: _isNight ? const Color(0xFF0F1815) : const Color(0xFFFAF6EB),
+                  borderRadius: BorderRadius.circular(6.r),
+                  border: Border.all(color: goldColor.withValues(alpha: 0.15)),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<bool>(
+                    value: _audioRepeatEachVerse.value,
+                    dropdownColor: cardColor,
+                    style: TextStyle(color: textColor, fontSize: 11.sp, fontWeight: FontWeight.bold),
+                    icon: Icon(Icons.arrow_drop_down_rounded, color: goldColor, size: 16.r),
+                    items: [
+                      DropdownMenuItem<bool>(
+                        value: false,
+                        child: Text(
+                          'الجزء',
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 10.5.sp,
+                            fontWeight: !_audioRepeatEachVerse.value ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                      DropdownMenuItem<bool>(
+                        value: true,
+                        child: Text(
+                          'كل آية',
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 10.5.sp,
+                            fontWeight: _audioRepeatEachVerse.value ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                    ],
+                    onChanged: (val) async {
+                      if (val != null) {
+                        _audioRepeatEachVerse.value = val;
+                        await _quranService.setSelectedAudioRepeatEachVerse(val);
+                        await _stopAudio();
+                      }
+                    },
+                  ),
+                ),
+              )),
               // Repeat Selector, Centered
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -1073,7 +1130,7 @@ class _QuranPageState extends State<QuranPage> {
             ],
           ),
           SizedBox(height: 10.h),
-          // Row 3: Centered playback controls (Stop, Pause, Play)
+          // Row 4: Centered playback controls (Stop, Pause, Play)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

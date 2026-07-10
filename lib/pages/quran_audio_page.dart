@@ -32,6 +32,7 @@ class _QuranAudioPageState extends State<QuranAudioPage> {
   int _startVerse = 1;
   int _endVerse = 7;
   int _repeatCount = 1;
+  bool _repeatEachVerse = false;
 
   bool _dependenciesLoaded = false;
   String _errorMessage = '';
@@ -80,11 +81,13 @@ class _QuranAudioPageState extends State<QuranAudioPage> {
         _startVerse = _quranService.getSelectedAudioStartVerseOrDefault(defaultStart).clamp(1, maxVerses);
         _endVerse = _quranService.getSelectedAudioEndVerseOrDefault(maxVerses).clamp(1, maxVerses);
         _repeatCount = _quranService.getSelectedAudioRepeatCount().clamp(1, 10);
+        _repeatEachVerse = _quranService.getSelectedAudioRepeatEachVerse();
       } catch (_) {
         _selectedSurah = widget.initialSurah ?? 1;
         _startVerse = 1;
         _endVerse = quran_pkg.getVerseCount(_selectedSurah);
         _repeatCount = 1;
+        _repeatEachVerse = false;
       }
       _dependenciesLoaded = true;
       _updateDownloadStatuses();
@@ -172,7 +175,12 @@ class _QuranAudioPageState extends State<QuranAudioPage> {
     }
 
     await _audioService.stop();
-    await _audioService.playPlaylist(urls, verses: verses, repeatCount: _repeatCount);
+    await _audioService.playPlaylist(
+      urls,
+      verses: verses,
+      repeatCount: _repeatCount,
+      repeatEachVerse: _repeatEachVerse,
+    );
   }
 
   @override
@@ -534,6 +542,83 @@ class _QuranAudioPageState extends State<QuranAudioPage> {
                               icon: Icon(Icons.add_circle_outline_rounded, color: goldColor, size: 24.r),
                             ),
                           ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  SizedBox(height: 12.h),
+
+                  // نوع التكرار
+                  Container(
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(16.r),
+                      border: Border.all(color: goldColor.withOpacity(0.15), width: 1),
+                    ),
+                    padding: EdgeInsets.all(16.r),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.repeat_on_rounded, color: goldColor, size: 20.r),
+                            SizedBox(width: 8.w),
+                            Text(
+                              'audio_repeat_mode'.tr,
+                              style: TextStyle(fontSize: 14.sp, color: textColor, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 12.h),
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12.w),
+                          decoration: BoxDecoration(
+                            color: isNight ? const Color(0xFF0F1815) : const Color(0xFFFAF6EB),
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(color: goldColor.withOpacity(0.2)),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<bool>(
+                              value: _repeatEachVerse,
+                              isExpanded: true,
+                              dropdownColor: cardColor,
+                              icon: Icon(Icons.arrow_drop_down_rounded, color: goldColor),
+                              items: [
+                                DropdownMenuItem<bool>(
+                                  value: false,
+                                  child: Text(
+                                    'audio_repeat_range'.tr,
+                                    style: TextStyle(
+                                      color: textColor,
+                                      fontSize: 13.sp,
+                                      fontWeight: !_repeatEachVerse ? FontWeight.bold : FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                                DropdownMenuItem<bool>(
+                                  value: true,
+                                  child: Text(
+                                    'audio_repeat_verse'.tr,
+                                    style: TextStyle(
+                                      color: textColor,
+                                      fontSize: 13.sp,
+                                      fontWeight: _repeatEachVerse ? FontWeight.bold : FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              onChanged: (val) async {
+                                if (val != null) {
+                                  setState(() => _repeatEachVerse = val);
+                                  await _quranService.setSelectedAudioRepeatEachVerse(val);
+                                  if (_audioService.isPlaying.value) {
+                                    _audioService.stop();
+                                  }
+                                }
+                              },
+                            ),
+                          ),
                         ),
                       ],
                     ),
