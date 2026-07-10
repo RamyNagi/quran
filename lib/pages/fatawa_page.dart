@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import '../controllers/fatawa_controller.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/arabesque_painter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fatawa Main Search Page (Stateless with GetX)
@@ -63,7 +64,8 @@ class FatawaPage extends StatelessWidget {
                   // Search Field
                   Padding(
                     padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0),
-                    child: TextField(
+                    child: Obx(() => TextField(
+                      enabled: !controller.isServiceStopped.value,
                       controller: controller.searchController,
                       textInputAction: TextInputAction.search,
                       onSubmitted: controller.performSearch,
@@ -78,8 +80,10 @@ class FatawaPage extends StatelessWidget {
                         filled: true,
                         fillColor: theme.cardTheme.color,
                         prefixIcon: IconButton(
-                          onPressed: () => controller.performSearch(controller.searchController.text),
-                          icon: Icon(Icons.search, color: goldColor),
+                          onPressed: controller.isServiceStopped.value
+                              ? null
+                              : () => controller.performSearch(controller.searchController.text),
+                          icon: Icon(Icons.search, color: controller.isServiceStopped.value ? Colors.grey : goldColor),
                         ),
                         suffixIcon: ValueListenableBuilder<TextEditingValue>(
                           valueListenable: controller.searchController,
@@ -107,6 +111,12 @@ class FatawaPage extends StatelessWidget {
                             color: goldColor.withValues(alpha: 0.18),
                           ),
                         ),
+                        disabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(18.r),
+                          borderSide: BorderSide(
+                            color: Colors.grey.withValues(alpha: 0.1),
+                          ),
+                        ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(18.r),
                           borderSide: BorderSide(
@@ -115,7 +125,7 @@ class FatawaPage extends StatelessWidget {
                           ),
                         ),
                       ),
-                    ),
+                    )),
                   ),
 
                   SizedBox(height: 16.h),
@@ -123,6 +133,37 @@ class FatawaPage extends StatelessWidget {
                   // Results list / State switcher (Reactive)
                   Expanded(
                     child: Obx(() {
+                      if (controller.isServiceStopped.value) {
+                        return Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24.r),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.construction_rounded, color: goldColor, size: 54.r),
+                                SizedBox(height: 16.h),
+                                Text(
+                                  'fatwa_service_stopped'.tr,
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.onSurface,
+                                  ),
+                                ),
+                                SizedBox(height: 8.h),
+                                Text(
+                                  'يرجى تحديث التطبيق لاحقاً أو المحاولة في وقت آخر.',
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
                       if (controller.isLoading.value) {
                         return Center(
                           child: Column(
@@ -191,6 +232,29 @@ class FatawaPage extends StatelessWidget {
                         },
                       );
                     }),
+                  ),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface.withValues(alpha: 0.8),
+                      border: Border(
+                        top: BorderSide(
+                          color: goldColor.withValues(alpha: 0.15),
+                          width: 1.h,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      'fatwa_disclaimer'.tr,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                        fontSize: 11.sp,
+                        height: 1.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -552,6 +616,32 @@ class _FatwaDetailsPageState extends State<_FatwaDetailsPage> {
                                         ),
                                       ),
                                     ],
+                                  ),
+                                ),
+                                SizedBox(height: 16.h),
+                                ElevatedButton.icon(
+                                  onPressed: () async {
+                                    final uri = Uri.parse(widget.url);
+                                    try {
+                                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                    } catch (_) {}
+                                  },
+                                  icon: const Icon(Icons.open_in_browser_rounded, color: Colors.white),
+                                  label: Text(
+                                    'عرض الفتوى في المصدر الأصلي',
+                                    style: TextStyle(
+                                      fontSize: 14.sp,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: widget.goldColor,
+                                    padding: EdgeInsets.symmetric(vertical: 14.h),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14.r),
+                                    ),
+                                    elevation: 2,
                                   ),
                                 ),
                                 SizedBox(height: 30.h),

@@ -27,6 +27,7 @@ class FatawaController extends GetxController {
   final query = ''.obs;
   final results = <FatwaResult>[].obs;
   final searchController = TextEditingController();
+  final isServiceStopped = false.obs;
 
   @override
   void onInit() {
@@ -38,6 +39,35 @@ class FatawaController extends GetxController {
         errorMessage.value = '';
       }
     });
+    checkServiceStatus();
+  }
+
+  Future<void> checkServiceStatus() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://www.islamweb.net/ar/fatwa/?page=websearch&stxt=%D8%B5%D9%84%D8%A7%D8%A9'),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept-Language': 'ar,en;q=0.9',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode != 200) {
+        isServiceStopped.value = true;
+        return;
+      }
+
+      final doc = parser.parse(utf8.decode(response.bodyBytes, allowMalformed: true));
+      final hasResults = doc.querySelectorAll('ul.search-results > li').isNotEmpty || 
+                         doc.querySelectorAll('a').any((link) {
+                           final href = link.attributes['href'] ?? '';
+                           return href.contains('/fatwa/') || href.contains('/ar/fatwa/');
+                         });
+
+      isServiceStopped.value = !hasResults;
+    } catch (_) {
+      // Temporary network error, do not block the UI unless it definitely fails
+    }
   }
 
   @override
@@ -175,6 +205,30 @@ class FatawaController extends GetxController {
         }
       }
 
+      if (list.isEmpty) {
+        try {
+          final testResponse = await http.get(
+            Uri.parse('https://www.islamweb.net/ar/fatwa/?page=websearch&stxt=%D8%B5%D9%84%D8%A7%D8%A9'),
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+              'Accept-Language': 'ar,en;q=0.9',
+            },
+          ).timeout(const Duration(seconds: 5));
+          final testDoc = parser.parse(utf8.decode(testResponse.bodyBytes, allowMalformed: true));
+          final hasResults = testDoc.querySelectorAll('ul.search-results > li').isNotEmpty || 
+                             testDoc.querySelectorAll('a').any((link) {
+                               final href = link.attributes['href'] ?? '';
+                               return href.contains('/fatwa/') || href.contains('/ar/fatwa/');
+                             });
+          if (!hasResults) {
+            isServiceStopped.value = true;
+            errorMessage.value = 'fatwa_service_stopped'.tr;
+            isLoading.value = false;
+            return;
+          }
+        } catch (_) {}
+      }
+
       results.assignAll(list);
       isLoading.value = false;
     } on TimeoutException {
@@ -182,7 +236,8 @@ class FatawaController extends GetxController {
       errorMessage.value = 'sunnah_timeout_error'.tr;
     } catch (e) {
       isLoading.value = false;
-      errorMessage.value = 'sunnah_download_error'.tr;
+      isServiceStopped.value = true;
+      errorMessage.value = 'fatwa_service_stopped'.tr;
     }
   }
 
