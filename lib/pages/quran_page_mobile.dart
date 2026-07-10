@@ -362,7 +362,9 @@ class _QuranPageState extends State<QuranPage> {
                                       ),
                                     ),
                                     padding: EdgeInsets.all(_isToolbarVisible ? 2.r : 1.r),
-                                    child: Container(
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 250),
+                                      curve: Curves.easeInOut,
                                       decoration: BoxDecoration(
                                         border: Border.all(
                                           color: _isNight
@@ -1531,9 +1533,14 @@ void _showAyahMoreOptions({
   required BuildContext context,
   required AyahModel ayah,
 }) {
+  final isNight = Get.find<AppController>().isNightMode.value;
+  final Color bgColor = isNight ? const Color(0xFF0F1715) : const Color(0xFFFAF6EB);
+  final Color textColor = isNight ? Colors.white : const Color(0xFF2C2518);
+  final Color subtitleColor = isNight ? Colors.white.withValues(alpha: 0.62) : const Color(0xFF5A5241);
+
   showModalBottomSheet<void>(
     context: context,
-    backgroundColor: Colors.black,
+    backgroundColor: bgColor,
     isScrollControlled: true,
     builder: (sheetContext) => SafeArea(
       child: Directionality(
@@ -1547,7 +1554,7 @@ void _showAyahMoreOptions({
               Text(
                 'خيارات الآية',
                 style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
+                  color: textColor,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1556,6 +1563,8 @@ void _showAyahMoreOptions({
                 icon: Icons.menu_book,
                 title: 'عرض التفسير',
                 subtitle: 'فتح التفسير المحدد للآية',
+                textColor: textColor,
+                subtitleColor: subtitleColor,
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _showAyahTafsir(context, ayah);
@@ -1565,6 +1574,8 @@ void _showAyahMoreOptions({
                 icon: Icons.download_for_offline_outlined,
                 title: 'تحميل أو اختيار تفسير',
                 subtitle: 'اختر من التفاسير والترجمات المتاحة',
+                textColor: textColor,
+                subtitleColor: subtitleColor,
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _showTafsirDownloads(context, ayah);
@@ -1574,6 +1585,8 @@ void _showAyahMoreOptions({
                 icon: Icons.translate,
                 title: 'معنى الآية بالعربية',
                 subtitle: 'عرض معنى مبسط للآية باللغة العربية',
+                textColor: textColor,
+                subtitleColor: subtitleColor,
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _showArabicMeaning(context, ayah);
@@ -1588,9 +1601,14 @@ void _showAyahMoreOptions({
 }
 
 void _showAyahTafsir(BuildContext context, AyahModel ayah) {
+  final isNight = Get.find<AppController>().isNightMode.value;
+  final Color bgColor = isNight ? const Color(0xFF0F1715) : const Color(0xFFFAF6EB);
+  final Color textColor = isNight ? Colors.white : const Color(0xFF2C2518);
+  final Color dividerColor = isNight ? Colors.white24 : const Color(0xFFEED2A0).withOpacity(0.5);
+
   showModalBottomSheet<void>(
     context: context,
-    backgroundColor: Colors.black,
+    backgroundColor: bgColor,
     isScrollControlled: true,
     builder: (sheetContext) => SafeArea(
       child: Directionality(
@@ -1618,14 +1636,14 @@ void _showAyahTafsir(BuildContext context, AyahModel ayah) {
                       children: [
                         IconButton(
                           onPressed: () => Navigator.pop(sheetContext),
-                          icon: const Icon(Icons.close, color: Colors.white),
+                          icon: Icon(Icons.close, color: textColor),
                         ),
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'تفسير الآية',
                             textAlign: TextAlign.right,
                             style: TextStyle(
-                              color: Colors.white,
+                              color: textColor,
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
@@ -1637,13 +1655,13 @@ void _showAyahTafsir(BuildContext context, AyahModel ayah) {
                     Text(
                       ayah.text,
                       textAlign: TextAlign.right,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: textColor,
                         fontSize: 21,
                         height: 1.8,
                       ),
                     ),
-                    const Divider(color: Colors.white24, height: 28),
+                    Divider(color: dividerColor, height: 28),
                     Expanded(
                       child: hasError || tafsirText.isEmpty
                           ? _TafsirEmptyState(
@@ -1654,8 +1672,8 @@ void _showAyahTafsir(BuildContext context, AyahModel ayah) {
                               child: Text(
                                 tafsirText,
                                 textAlign: TextAlign.right,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: textColor,
                                   fontSize: 18,
                                   height: 1.75,
                                 ),
@@ -1759,9 +1777,15 @@ void _showTafsirDownloads(BuildContext context, AyahModel ayah) {
   final quran = QuranLibrary();
   final tafsirs = quran.tafsirAndTraslationCollection;
 
+  final isNight = Get.find<AppController>().isNightMode.value;
+  final Color bgColor = isNight ? const Color(0xFF0F1715) : const Color(0xFFFAF6EB);
+  final Color textColor = isNight ? Colors.white : const Color(0xFF2C2518);
+  final Color subtitleColor = isNight ? Colors.white.withValues(alpha: 0.62) : const Color(0xFF5A5241);
+  final Color iconColor = isNight ? Colors.white30 : Colors.black26;
+
   showModalBottomSheet<void>(
     context: context,
-    backgroundColor: Colors.black,
+    backgroundColor: bgColor,
     isScrollControlled: true,
     builder: (sheetContext) => SafeArea(
       child: Directionality(
@@ -1776,7 +1800,7 @@ void _showTafsirDownloads(BuildContext context, AyahModel ayah) {
                 child: Text(
                   'التفاسير والترجمات المتاحة',
                   style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
+                    color: textColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -1785,7 +1809,7 @@ void _showTafsirDownloads(BuildContext context, AyahModel ayah) {
                 child: ListView.separated(
                   itemCount: tafsirs.length,
                   separatorBuilder: (_, _) =>
-                      Divider(color: Colors.white.withValues(alpha: 0.08)),
+                      Divider(color: textColor.withValues(alpha: 0.08)),
                   itemBuilder: (context, index) {
                     final tafsir = tafsirs[index];
                     final downloaded = quran.getTafsirDownloaded(index);
@@ -1798,26 +1822,24 @@ void _showTafsirDownloads(BuildContext context, AyahModel ayah) {
                             : Icons.download_outlined,
                         color: downloaded
                             ? QuranPage._goldColor
-                            : Colors.white70,
+                            : textColor.withValues(alpha: 0.7),
                       ),
                       title: Text(
                         _decodeLegacyArabic(tafsir.name),
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(color: textColor),
                       ),
                       subtitle: Text(
                         _decodeLegacyArabic(tafsir.bookName),
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.62),
-                        ),
+                        style: TextStyle(color: subtitleColor),
                       ),
                       trailing: selected
                           ? const Icon(
                               Icons.radio_button_checked,
                               color: QuranPage._goldColor,
                             )
-                          : const Icon(
+                          : Icon(
                               Icons.radio_button_unchecked,
-                              color: Colors.white38,
+                              color: iconColor,
                             ),
                       onTap: () async {
                         if (!downloaded) {
@@ -1847,9 +1869,14 @@ void _showTafsirDownloads(BuildContext context, AyahModel ayah) {
 }
 
 void _showArabicMeaning(BuildContext context, AyahModel ayah) {
+  final isNight = Get.find<AppController>().isNightMode.value;
+  final Color bgColor = isNight ? const Color(0xFF0F1715) : const Color(0xFFFAF6EB);
+  final Color textColor = isNight ? Colors.white : const Color(0xFF2C2518);
+  final Color subtitleColor = isNight ? Colors.white.withValues(alpha: 0.76) : const Color(0xFF5A5241);
+
   showModalBottomSheet<void>(
     context: context,
-    backgroundColor: Colors.black,
+    backgroundColor: bgColor,
     isScrollControlled: true,
     builder: (sheetContext) => SafeArea(
       child: Directionality(
@@ -1863,7 +1890,7 @@ void _showArabicMeaning(BuildContext context, AyahModel ayah) {
               Text(
                 'المعنى المبسط للآية',
                 style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
+                  color: textColor,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1871,8 +1898,8 @@ void _showArabicMeaning(BuildContext context, AyahModel ayah) {
               Text(
                 ayah.text,
                 textAlign: TextAlign.right,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: textColor,
                   fontSize: 22,
                   height: 1.8,
                 ),
@@ -1895,7 +1922,7 @@ void _showArabicMeaning(BuildContext context, AyahModel ayah) {
                       'تعذر تحميل المعنى المبسط الآن. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.',
                       textAlign: TextAlign.right,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.76),
+                        color: subtitleColor,
                         fontSize: 18,
                         height: 1.7,
                       ),
@@ -1906,7 +1933,7 @@ void _showArabicMeaning(BuildContext context, AyahModel ayah) {
                     meaning,
                     textAlign: TextAlign.right,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.76),
+                      color: subtitleColor,
                       fontSize: 18,
                       height: 1.7,
                     ),
@@ -1966,16 +1993,20 @@ class _TafsirEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isNight = Get.find<AppController>().isNightMode.value;
+    final Color textColor = isNight ? Colors.white : const Color(0xFF2C2518);
+    final Color errorColor = isNight ? Colors.white.withValues(alpha: 0.55) : const Color(0xFF2C2518).withValues(alpha: 0.55);
+
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(Icons.info_outline, color: QuranPage._goldColor, size: 34),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'لم يتم العثور على تفسير لهذه الآية في التفسير الحالي.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white, fontSize: 16, height: 1.5),
+            style: TextStyle(color: textColor, fontSize: 16, height: 1.5),
           ),
           if (error != null) ...[
             const SizedBox(height: 8),
@@ -1983,7 +2014,7 @@ class _TafsirEmptyState extends StatelessWidget {
               error!,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.55),
+                color: errorColor,
                 fontSize: 12,
               ),
             ),
@@ -2008,12 +2039,16 @@ class _QuranOptionTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
+    required this.textColor,
+    required this.subtitleColor,
     required this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final Color textColor;
+  final Color subtitleColor;
   final VoidCallback onTap;
 
   @override
@@ -2022,10 +2057,10 @@ class _QuranOptionTile extends StatelessWidget {
       onTap: onTap,
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon, color: QuranPage._goldColor),
-      title: Text(title, style: const TextStyle(color: Colors.white)),
+      title: Text(title, style: TextStyle(color: textColor)),
       subtitle: Text(
         subtitle,
-        style: TextStyle(color: Colors.white.withValues(alpha: 0.62)),
+        style: TextStyle(color: subtitleColor),
       ),
     );
   }

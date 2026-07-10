@@ -643,23 +643,22 @@ class _SunnahPageState extends State<SunnahPage> {
       return;
     }
 
-    try {
-      final hadiths = _loadHadiths(book);
-      if (hadiths.isEmpty) {
-        throw const FormatException('No hadiths found');
-      }
-
+    final cached = _hadithCache[book.editionId];
+    if (cached != null) {
       Get.to(
         () => _SunnahReaderPage(
           book: book,
-          hadiths: hadiths,
+          hadiths: cached,
           initialQuery: initialQuery,
         ),
       );
-    } catch (_) {
-      MySnackbar.showError(
-        title: book.title,
-        message: 'sunnah_invalid_file_error'.tr,
+    } else {
+      Get.to(
+        () => _SunnahReaderPage(
+          book: book,
+          hadiths: null,
+          initialQuery: initialQuery,
+        ),
       );
     }
   }
@@ -1087,12 +1086,12 @@ class _SearchHintCard extends StatelessWidget {
 class _SunnahReaderPage extends StatefulWidget {
   const _SunnahReaderPage({
     required this.book,
-    required this.hadiths,
+    this.hadiths,
     this.initialQuery = '',
   });
 
   final _SunnahBook book;
-  final List<_HadithEntry> hadiths;
+  final List<_HadithEntry>? hadiths;
   final String initialQuery;
 
   @override
@@ -1103,6 +1102,8 @@ class _SunnahReaderPageState extends State<_SunnahReaderPage> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
   int? _expandedHadithNumber;
+  List<_HadithEntry> _hadiths = [];
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -1117,6 +1118,31 @@ class _SunnahReaderPageState extends State<_SunnahReaderPage> {
         });
       }
     });
+
+    if (widget.hadiths != null) {
+      _hadiths = widget.hadiths!;
+    } else {
+      _isLoading = true;
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted) return;
+        final rawBook = Get.find<StorageService>().read<String>('sunnah_book_json_${widget.book.editionId}', '');
+        if (rawBook.isNotEmpty) {
+          try {
+            final parsed = _parseHadiths(jsonDecode(rawBook));
+            if (mounted) {
+              setState(() {
+                _hadiths = parsed;
+                _isLoading = false;
+              });
+            }
+          } catch (_) {
+            if (mounted) setState(() => _isLoading = false);
+          }
+        } else {
+          if (mounted) setState(() => _isLoading = false);
+        }
+      });
+    }
   }
 
   @override
@@ -1146,7 +1172,7 @@ class _SunnahReaderPageState extends State<_SunnahReaderPage> {
                 padding: EdgeInsetsDirectional.only(end: 12.w),
                 child: Center(
                   child: Text(
-                    'sunnah_hadiths_count_label'.trParams({'count': '${widget.hadiths.length}'}),
+                    'sunnah_hadiths_count_label'.trParams({'count': '${_hadiths.length}'}),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
                       fontWeight: FontWeight.bold,
@@ -1269,12 +1295,16 @@ class _SunnahReaderPageState extends State<_SunnahReaderPage> {
                   ),
                   SizedBox(height: 12.h),
                   Expanded(
-                    child: results.isEmpty
-                        ? ListView(
-                            padding: EdgeInsets.symmetric(horizontal: 18.w),
-                            children: [_EmptySearch(goldColor: goldColor)],
+                    child: _isLoading
+                        ? Center(
+                            child: CircularProgressIndicator(color: goldColor),
                           )
-                        : ListView.separated(
+                        : results.isEmpty
+                            ? ListView(
+                                padding: EdgeInsets.symmetric(horizontal: 18.w),
+                                children: [_EmptySearch(goldColor: goldColor)],
+                              )
+                            : ListView.separated(
                             padding:
                                 EdgeInsets.fromLTRB(18.w, 0, 18.w, 28.h),
                             physics: const BouncingScrollPhysics(),
@@ -1310,9 +1340,9 @@ class _SunnahReaderPageState extends State<_SunnahReaderPage> {
   List<_HadithEntry> _filteredHadiths() {
     final query = _normalize(_query);
     if (query.isEmpty) {
-      return widget.hadiths;
+      return _hadiths;
     }
-    return widget.hadiths
+    return _hadiths
         .where((hadith) => _normalize(hadith.searchText).contains(query))
         .toList();
   }

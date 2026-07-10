@@ -23,6 +23,7 @@ class PrayerDay {
     required this.currentPrayerKey,
     required this.nextPrayerKey,
     required this.nextPrayerTime,
+    required this.calculationMethodKey,
   });
 
   final DateTime date;
@@ -34,6 +35,7 @@ class PrayerDay {
   final String currentPrayerKey;
   final String nextPrayerKey;
   final DateTime nextPrayerTime;
+  final String calculationMethodKey;
 
   Duration get timeUntilNext => nextPrayerTime.difference(DateTime.now());
 }

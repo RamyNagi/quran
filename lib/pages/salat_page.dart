@@ -91,13 +91,6 @@ class SalatPage extends StatelessWidget {
                       goldColor: goldColor,
                     ),
                     SizedBox(height: 20.h),
-                    Text(
-                      'egyptian_general_authority'.tr,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: accentColor,
-                      ),
-                    ),
-                    SizedBox(height: 12.h),
                     for (final prayer in day.prayers) ...[
                       _PrayerRow(
                         name: prayer.labelKey.tr,

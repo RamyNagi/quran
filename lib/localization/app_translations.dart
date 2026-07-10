@@ -118,6 +118,16 @@ class AppTranslations extends Translations {
       'muslim_world_league': 'Calculation method: Muslim World League',
       'egyptian_general_authority':
           'Based on: Egyptian General Authority of Survey',
+      'method_isna': 'Based on: Islamic Society of North America (ISNA)',
+      'method_umm_al_qura': 'Based on: Umm Al-Qura University, Makkah',
+      'method_karachi': 'Based on: University of Islamic Sciences, Karachi',
+      'method_turkey': 'Based on: Diyanet İşleri Başkanlığı, Turkey',
+      'method_gulf': 'Based on: Gulf Region',
+      'method_singapore': 'Based on: Majlis Ugama Islam Singapura (MUIS)',
+      'method_france': 'Based on: Union des Organisations Islamiques de France (UOIF)',
+      'method_dubai': 'Based on: Dubai (GAIAE)',
+      'method_jakim': 'Based on: Department of Islamic Development Malaysia (JAKIM)',
+      'method_kemenag': 'Based on: Ministry of Religious Affairs Indonesia (Kemenag)',
       'location_fallback':
           'Location is unavailable. Using the last saved location.',
       'notification_schedule_failed':
@@ -498,6 +508,16 @@ class AppTranslations extends Translations {
       'change_lang': 'AR/EN',
       'muslim_world_league': 'طريقة الحساب: رابطة العالم الإسلامي',
       'egyptian_general_authority': 'بناءً على: الهيئة المصرية العامة للمساحة',
+      'method_isna': 'بناءً على: الجمعية الإسلامية لأمريكا الشمالية (ISNA)',
+      'method_umm_al_qura': 'بناءً على: جامعة أم القرى، مكة المكرمة',
+      'method_karachi': 'بناءً على: جامعة العلوم الإسلامية بكراتشي',
+      'method_turkey': 'بناءً على: رئاسة الشؤون الدينية التركية',
+      'method_gulf': 'بناءً على: منطقة الخليج العربي',
+      'method_singapore': 'بناءً على: المجلس الإسلامي السنغافوري (MUIS)',
+      'method_france': 'بناءً على: اتحاد المنظمات الإسلامية في فرنسا (UOIF)',
+      'method_dubai': 'بناءً على: دبي (الأوقاف)',
+      'method_jakim': 'بناءً على: مصلحة التنمية الإسلامية بماليزيا (JAKIM)',
+      'method_kemenag': 'بناءً على: وزارة الشؤون الدينية بإندونيسيا (Kemenag)',
       'location_fallback': 'الموقع غير متاح. يتم استخدام آخر موقع محفوظ.',
       'notification_schedule_failed':
           'تم تجهيز المواقيت، لكن تعذر جدولة التنبيهات.',

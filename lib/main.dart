@@ -32,9 +32,12 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Check if we are running in the background isolate
-  final isBackground = Isolate.current.debugName != null && Isolate.current.debugName != 'main';
+  final isBackground =
+      Isolate.current.debugName != null && Isolate.current.debugName != 'main';
   if (isBackground) {
-    debugPrint('Running in background isolate (${Isolate.current.debugName}), running empty App.');
+    debugPrint(
+      'Running in background isolate (${Isolate.current.debugName}), running empty App.',
+    );
     runApp(const SizedBox.shrink());
     return;
   }
@@ -102,30 +105,34 @@ class MyApp extends StatelessWidget {
       designSize: const Size(390, 844),
       minTextAdapt: true,
       splitScreenMode: true,
-      builder: (_, _) => Obx(
-        () {
-          final isNight = controller.isNightMode.value;
-          SystemChrome.setSystemUIOverlayStyle(
-            SystemUiOverlayStyle(
-              statusBarColor: isNight ? AppTheme.statusBarDark : AppTheme.statusBarLight,
-              statusBarIconBrightness: isNight ? Brightness.light : Brightness.dark,
-              statusBarBrightness: isNight ? Brightness.dark : Brightness.light,
-            ),
-          );
+      builder: (_, _) => Obx(() {
+        final isNight = controller.isNightMode.value;
+        SystemChrome.setSystemUIOverlayStyle(
+          SystemUiOverlayStyle(
+            statusBarColor: isNight
+                ? AppTheme.statusBarDark
+                : AppTheme.statusBarLight,
+            statusBarIconBrightness: isNight
+                ? Brightness.light
+                : Brightness.dark,
+            statusBarBrightness: isNight ? Brightness.dark : Brightness.light,
+          ),
+        );
 
-          return GetMaterialApp(
-            title: 'Hayah',
-            debugShowCheckedModeBanner: false,
-            translations: AppTranslations(),
-            locale: Locale(controller.currentLanguage.value),
-            fallbackLocale: const Locale('ar'),
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.nightTheme,
-            themeMode: isNight ? ThemeMode.dark : ThemeMode.light,
-            home: const StartupSplash(),
-          );
-        },
-      ),
+        return GetMaterialApp(
+          title: 'Hayah',
+          debugShowCheckedModeBanner: false,
+          defaultTransition: Transition.rightToLeft,
+          transitionDuration: const Duration(milliseconds: 300),
+          translations: AppTranslations(),
+          locale: Locale(controller.currentLanguage.value),
+          fallbackLocale: const Locale('ar'),
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.nightTheme,
+          themeMode: isNight ? ThemeMode.dark : ThemeMode.light,
+          home: const StartupSplash(),
+        );
+      }),
     );
   }
 }
@@ -151,8 +158,12 @@ class _StartupSplashState extends State<StartupSplash> {
         final isNight = Get.find<AppController>().isNightMode.value;
         SystemChrome.setSystemUIOverlayStyle(
           SystemUiOverlayStyle(
-            statusBarColor: isNight ? AppTheme.statusBarDark : AppTheme.statusBarLight,
-            statusBarIconBrightness: isNight ? Brightness.light : Brightness.dark,
+            statusBarColor: isNight
+                ? AppTheme.statusBarDark
+                : AppTheme.statusBarLight,
+            statusBarIconBrightness: isNight
+                ? Brightness.light
+                : Brightness.dark,
             statusBarBrightness: isNight ? Brightness.dark : Brightness.light,
           ),
         );
@@ -170,7 +181,9 @@ class _StartupSplashState extends State<StartupSplash> {
     final isNight = Get.find<AppController>().isNightMode.value;
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
-        statusBarColor: isNight ? AppTheme.statusBarDark : AppTheme.statusBarLight,
+        statusBarColor: isNight
+            ? AppTheme.statusBarDark
+            : AppTheme.statusBarLight,
         statusBarIconBrightness: isNight ? Brightness.light : Brightness.dark,
         statusBarBrightness: isNight ? Brightness.dark : Brightness.light,
       ),
@@ -326,13 +339,17 @@ class MainRouter extends StatelessWidget {
 
     return Obx(() {
       final isNight = controller.isNightMode.value;
-      
+
       final overlayStyle = SystemUiOverlayStyle(
-        statusBarColor: isNight ? AppTheme.statusBarDark : AppTheme.statusBarLight,
+        statusBarColor: isNight
+            ? AppTheme.statusBarDark
+            : AppTheme.statusBarLight,
         statusBarIconBrightness: isNight ? Brightness.light : Brightness.dark,
         statusBarBrightness: isNight ? Brightness.dark : Brightness.light,
         systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: isNight ? Brightness.light : Brightness.dark,
+        systemNavigationBarIconBrightness: isNight
+            ? Brightness.light
+            : Brightness.dark,
       );
 
       Widget child;
@@ -357,10 +374,48 @@ class MainRouter extends StatelessWidget {
           break;
       }
 
-
       return AnnotatedRegion<SystemUiOverlayStyle>(
         value: overlayStyle,
-        child: child,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 320),
+          switchInCurve: Curves.easeInOut,
+          switchOutCurve: Curves.easeInOut,
+          layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+            return Stack(
+              children: <Widget>[
+                ...previousChildren,
+                ?currentChild,
+              ],
+            );
+          },
+          transitionBuilder: (Widget child, Animation<double> animation) {
+            final isIncoming = child.key == ValueKey<int>(controller.activePageIndex.value);
+            if (isIncoming) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(1.0, 0.0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              );
+            } else {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(-0.25, 0.0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: FadeTransition(
+                  opacity: animation,
+                  child: child,
+                ),
+              );
+            }
+          },
+          child: KeyedSubtree(
+            key: ValueKey<int>(controller.activePageIndex.value),
+            child: child,
+          ),
+        ),
       );
     });
   }
